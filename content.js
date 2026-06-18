@@ -26,7 +26,8 @@ const WFAuditor = {
     if (!el) return null;
     let wfaId = el.getAttribute('data-wfa-id');
     if (!wfaId) {
-      wfaId = 'wfa-' + Math.random().toString(36).substring(2, 11);
+      const selector = this.getUniqueSelector(el);
+      wfaId = 'wfa-' + this.hashCode(selector);
       el.setAttribute('data-wfa-id', wfaId);
     }
     let html = el.outerHTML;
@@ -41,6 +42,15 @@ const WFAuditor = {
     };
   },
 
+  hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+  },
+
   getUniqueSelector(el) {
     if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
     const parts = [];
@@ -48,7 +58,7 @@ const WFAuditor = {
     while (cur && cur.nodeType === Node.ELEMENT_NODE) {
       let name = cur.nodeName.toLowerCase();
       if (cur.id) {
-        parts.unshift('#' + cur.id);
+        parts.unshift('#' + CSS.escape(cur.id));
         break;
       }
       let sibling = cur;
@@ -872,11 +882,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   } else if (request.action === 'locateElement') {
     wfaRemoveHighlight();
+
+    // If the page doesn't have data-wfa-id elements yet (e.g. because it was reloaded or navigated to),
+    // trigger a run to label the elements deterministically.
+    if (!document.querySelector('[data-wfa-id]')) {
+      try {
+        WFAuditor.run();
+      } catch (e) {
+        console.error("Error auto-auditing for location mapping:", e);
+      }
+    }
     
     // Attempt search by data-wfa-id first, then fallback to selector
     let el = request.id ? document.querySelector(`[data-wfa-id="${request.id}"]`) : null;
     if (!el && request.selector) {
-      el = document.querySelector(request.selector);
+      try {
+        el = document.querySelector(request.selector);
+      } catch (e) {
+        console.error("Invalid selector query fallback:", e);
+      }
     }
     
     if (el) {

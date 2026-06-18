@@ -379,7 +379,10 @@ function handleLocateElement(e) {
     }
 
     if (cleanTarget === cleanActive) {
-      chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
+      chrome.scripting.executeScript({ target: { tabId: activeTab.id }, files: ["content.js"] }, () => {
+        // Ignore errors if already injected/failed, proceed to send message
+        chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
+      });
     } else {
       btn.textContent = "⏳ Navegando...";
       chrome.tabs.update(activeTab.id, { url: targetUrl }, () => {
@@ -387,7 +390,9 @@ function handleLocateElement(e) {
           if (tabId === activeTab.id && changeInfo.status === "complete") {
             chrome.tabs.onUpdated.removeListener(listener);
             setTimeout(() => {
-              chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
+              chrome.scripting.executeScript({ target: { tabId: activeTab.id }, files: ["content.js"] }, () => {
+                chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
+              });
             }, 800);
           }
         };
