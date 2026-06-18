@@ -535,10 +535,21 @@ body {
   font-weight: bold;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
+  flex-shrink: 0;
 }
 .wfa-locate-btn:hover {
   background: #3341dd;
+}
+.wfa-locate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.wfa-locate-btn.active {
+  background: #dc2626;
+}
+.wfa-locate-btn.active:hover {
+  background: #b91c1c;
 }
 .wfa-code-detail {
   background: #282c34;

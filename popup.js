@@ -30,6 +30,10 @@ let sitemapUrlsToAudit = [];
 let currentSitemapIndex = 0;
 let activeTabId = null;
 
+// ─── Locate toggle state ─────────────────────────────────────
+let activeLocateKey = null; // wfaId or selector of the highlighted element
+let activeLocateBtn = null; // DOM button currently in "active" state
+
 // ─── Init ───────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   // Tabs Navigation
@@ -148,6 +152,9 @@ function runSingleAudit() {
 function renderResults(data, summaryId, resultsId) {
   const summaryEl = document.getElementById(summaryId);
   const resultsEl = document.getElementById(resultsId);
+
+  // Limpia estado de localización al re-renderizar
+  resetActiveLocate();
 
   summaryEl.classList.remove("hidden");
   resultsEl.classList.remove("hidden");
@@ -296,56 +303,91 @@ function renderResults(data, summaryId, resultsId) {
     resultsEl.appendChild(section);
   });
 
-  // Attach event listeners to locate buttons
+  // Attach toggle listeners to locate buttons
   resultsEl.querySelectorAll(".wfa-locate-btn").forEach((btn) => {
     btn.addEventListener("click", handleLocateElement);
   });
 }
 
-// ─── Locate Element ──────────────────────────────────────────
+// ─── Locate Element (toggle) ─────────────────────────────────
+function resetActiveLocate() {
+  if (activeLocateBtn) {
+    activeLocateBtn.textContent = "📍 Localizar";
+    activeLocateBtn.classList.remove("active");
+    activeLocateBtn.disabled = false;
+  }
+  activeLocateBtn = null;
+  activeLocateKey = null;
+}
+
+function sendRemoveHighlight() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { action: "removeHighlight" }, () => {});
+  });
+}
+
+function activateLocateBtn(btn) {
+  btn.textContent = "✖ Ocultar";
+  btn.classList.add("active");
+  btn.disabled = false;
+}
+
 function handleLocateElement(e) {
-  const btn = e.target;
+  const btn = e.currentTarget;
   const wfaId = btn.getAttribute("data-wfa-id");
   const selector = btn.getAttribute("data-selector");
   const targetUrl = btn.getAttribute("data-url");
+  const key = wfaId || selector;
 
-  btn.textContent = "⌛...";
+  // TOGGLE OFF: same button clicked — remove highlight and reset
+  if (activeLocateKey === key && activeLocateBtn === btn) {
+    sendRemoveHighlight();
+    resetActiveLocate();
+    return;
+  }
+
+  // SWITCH: another button was active — deactivate it before proceeding
+  if (activeLocateBtn && activeLocateBtn !== btn) {
+    resetActiveLocate();
+    sendRemoveHighlight();
+  }
+
+  btn.textContent = "⌛";
   btn.disabled = true;
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const activeTab = tabs[0];
     if (!activeTab) {
-      resetBtn();
+      btn.textContent = "📍 Localizar";
+      btn.disabled = false;
       return;
     }
 
     const cleanTarget = targetUrl.split('#')[0].split('?')[0];
-    const cleanActive = activeTab.url.split('#')[0].split('?')[0];
+    const cleanActive = (activeTab.url || '').split('#')[0].split('?')[0];
+
+    function onLocateResponse(res) {
+      if (chrome.runtime.lastError || !res || !res.success) {
+        btn.textContent = "📍 Localizar";
+        btn.disabled = false;
+        alert(res?.error || "No se pudo resaltar el elemento. La página pudo haber cambiado.");
+        return;
+      }
+      activeLocateKey = key;
+      activeLocateBtn = btn;
+      activateLocateBtn(btn);
+    }
 
     if (cleanTarget === cleanActive) {
-      // Send directly
-      chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector: selector }, (res) => {
-        resetBtn();
-        if (chrome.runtime.lastError || !res || !res.success) {
-          alert(res?.error || "No se pudo resaltar el elemento. La página pudo haber cambiado.");
-        }
-      });
+      chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
     } else {
-      // Navigate active tab first
       btn.textContent = "⏳ Navegando...";
-      chrome.tabs.update(activeTab.id, { url: targetUrl }, (tab) => {
+      chrome.tabs.update(activeTab.id, { url: targetUrl }, () => {
         const listener = (tabId, changeInfo) => {
           if (tabId === activeTab.id && changeInfo.status === "complete") {
             chrome.tabs.onUpdated.removeListener(listener);
-            
-            // Wait slightly for scripts to run
             setTimeout(() => {
-              chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector: selector }, (res) => {
-                resetBtn();
-                if (chrome.runtime.lastError || !res || !res.success) {
-                  alert("Página cargada. " + (res?.error || "No se pudo localizar el elemento por selector."));
-                }
-              });
+              chrome.tabs.sendMessage(activeTab.id, { action: "locateElement", id: wfaId, selector }, onLocateResponse);
             }, 800);
           }
         };
@@ -353,11 +395,6 @@ function handleLocateElement(e) {
       });
     }
   });
-
-  function resetBtn() {
-    btn.textContent = "📍 Localizar";
-    btn.disabled = false;
-  }
 }
 
 // ─── Sitemap Audit Flow ──────────────────────────────────────

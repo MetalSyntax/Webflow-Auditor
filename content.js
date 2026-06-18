@@ -936,18 +936,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           padding: 8px 16px !important;
           border-radius: 8px !important;
           font-size: 12px !important;
-          font-weight: 600;
+          font-weight: 500 !important;
           box-shadow: 0 4px 15px rgba(0,0,0,0.6) !important;
           border: 1px solid #3e3e56 !important;
           z-index: 9999999 !important;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 12px !important;
+          cursor: pointer !important;
+          user-select: none !important;
+          white-space: nowrap !important;
         `;
         toast.innerHTML = `
-          <span>📍 Elemento localizado. Haz clic en la pantalla para quitar el foco.</span>
-          <button style="background: #4353FF !important; color: white !important; border: none !important; padding: 4px 8px !important; border-radius: 4px !important; font-size: 11px !important; cursor: pointer !important; font-weight: bold;">Cerrar</button>
+          <span>📍 Elemento localizado — usa <strong>✖ Ocultar</strong> en el panel o haz clic aquí para cerrar.</span>
         `;
         document.body.appendChild(toast);
 
@@ -963,6 +962,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       sendResponse({ success: false, error: 'Elemento no encontrado en la página. Puede haber cambiado la estructura.' });
     }
+  } else if (request.action === 'removeHighlight') {
+    wfaRemoveHighlight();
+    sendResponse({ success: true });
   }
   return true;
 });
