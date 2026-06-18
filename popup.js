@@ -230,7 +230,7 @@ function renderResults(data, summaryId, resultsId) {
             codeBlock = `
               <div class="wfa-code-detail">
                 <div class="wfa-code-header">Código HTML:</div>
-                <pre class="wfa-code-block"><code>${escapeHTML(html)}</code></pre>
+                <pre class="wfa-code-block"><code>${highlightHTML(escapeHTML(html))}</code></pre>
               </div>
             `;
           }
@@ -666,4 +666,12 @@ function escapeHTML(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function highlightHTML(escapedHtml) {
+  return escapedHtml
+    .replace(/(&lt;\/?[a-zA-Z0-9:-]+)/g, '<span class="code-tag">$1</span>')
+    .replace(/(\s)([a-zA-Z0-9:-]+)(=&quot;)/g, '$1<span class="code-attr">$2</span>$3')
+    .replace(/(=&quot;)(.*?)(&quot;)/g, '$1<span class="code-string">$2</span>$3')
+    .replace(/(&gt;)/g, '<span class="code-tag">&gt;</span>');
 }

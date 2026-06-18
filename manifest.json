@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Webflow SEO & A11y Auditor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Auditoría completa de SEO, Performance y Accesibilidad con soluciones específicas para Webflow.",
   "icons": {
     "16": "icons/icon16.png",
