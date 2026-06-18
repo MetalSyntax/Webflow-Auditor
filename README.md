@@ -131,8 +131,21 @@ webflow-auditor/
 │   └── downloads/        # CRX y ZIP generados por build.sh
 ├── build.sh              # Script de empaquetado
 ├── .gitignore
+├── CHANGELOG.md          # Historial de cambios del proyecto
 └── README.md
 ```
+
+---
+
+## Historial de Cambios (Changelog)
+
+Todos los cambios y versiones de este proyecto están detallados en el archivo [CHANGELOG.md](file:///Users/metalsyntax/Downloads/Webflow-Auditor/CHANGELOG.md).
+
+### Resumen de la Versión Reciente: v1.1.0 (2026-06-18)
+- **Interfaz de Usuario Renovada**: Rediseño visual del popup, puntuaciones con indicadores circulares, botones tipo píldora y remoción de emojis.
+- **Iconos Actualizados**: Nuevo diseño de logo con fondo transparente.
+- **Mejoras Técnicas**: Prevención de errores de inyección repetida en `content.js` y corrección de un bug en el check de accesibilidad de `accesskeys`.
+- **Anotaciones y Localización**: IDs deterministas y auto-anotación mejorada.
 
 ---
 
