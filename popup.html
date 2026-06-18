@@ -18,36 +18,116 @@
     <div id="pageUrl" class="header-url">—</div>
   </div>
 
-  <div class="audit-btn-wrap">
-    <button id="runAudit" class="audit-btn">
-      <span id="btnText">🔍 Auditar página</span>
-      <span id="btnLoader" class="loader hidden"></span>
-    </button>
-    <button id="exportBtn" class="export-btn hidden" title="Exportar reporte">📋 Exportar</button>
+  <!-- Tabs Navigation -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-page">📄 Página Actual</button>
+    <button class="tab-btn" data-tab="tab-sitemap">🗺️ Sitemap XML</button>
   </div>
 
-  <!-- SCORE SUMMARY -->
-  <div id="summary" class="summary hidden">
-    <div class="score-card" id="scoreSEO">
-      <div class="score-num" id="numSEO">—</div>
-      <div class="score-label">SEO</div>
+  <!-- TAB: SINGLE PAGE -->
+  <div id="tab-page" class="tab-content">
+    <div class="audit-btn-wrap">
+      <button id="runAudit" class="audit-btn">
+        <span id="btnText">🔍 Auditar página</span>
+        <span id="btnLoader" class="loader hidden"></span>
+      </button>
+      <button id="exportBtn" class="export-btn hidden" title="Exportar reporte">📋 Exportar</button>
     </div>
-    <div class="score-card" id="scorePerf">
-      <div class="score-num" id="numPerf">—</div>
-      <div class="score-label">Performance</div>
+
+    <!-- SCORE SUMMARY -->
+    <div id="summary" class="summary hidden">
+      <div class="score-card" id="scoreSEO">
+        <div class="score-num" id="numSEO">—</div>
+        <div class="score-label">SEO</div>
+      </div>
+      <div class="score-card" id="scorePerf">
+        <div class="score-num" id="numPerf">—</div>
+        <div class="score-label">Performance</div>
+      </div>
+      <div class="score-card" id="scoreMobile">
+        <div class="score-num" id="numMobile">—</div>
+        <div class="score-label">Mobile</div>
+      </div>
+      <div class="score-card" id="scoreA11y">
+        <div class="score-num" id="numA11y">—</div>
+        <div class="score-label">A11y</div>
+      </div>
     </div>
-    <div class="score-card" id="scoreMobile">
-      <div class="score-num" id="numMobile">—</div>
-      <div class="score-label">Mobile</div>
-    </div>
-    <div class="score-card" id="scoreA11y">
-      <div class="score-num" id="numA11y">—</div>
-      <div class="score-label">A11y</div>
-    </div>
+
+    <!-- RESULTS -->
+    <div id="results" class="results hidden"></div>
   </div>
 
-  <!-- RESULTS -->
-  <div id="results" class="results hidden"></div>
+  <!-- TAB: SITEMAP -->
+  <div id="tab-sitemap" class="tab-content hidden">
+    <div class="sitemap-input-wrap">
+      <div class="input-container">
+        <input type="text" id="sitemapUrl" placeholder="https://ejemplo.com/sitemap.xml" />
+        <button id="runSitemapAudit" class="audit-btn">🔍 Auditar</button>
+      </div>
+      <div class="sitemap-actions-row">
+        <button id="exportSitemapBtn" class="export-btn hidden">📋 Exportar Todo</button>
+        <button id="cancelSitemapBtn" class="export-btn hidden red-btn">⏹️ Cancelar</button>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div id="sitemapProgress" class="sitemap-progress hidden">
+      <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="progressStatus" class="progress-status">Preparando...</div>
+    </div>
+
+    <!-- SITEMAP RESULTS -->
+    <div id="sitemapResults" class="sitemap-results hidden">
+      <div class="sitemap-summary-card">
+        <h3>Reporte General del Sitio</h3>
+        <div class="sitemap-grid-stats">
+          <div class="stat-box">
+            <span class="stat-num" id="statTotalChecked">0</span>
+            <span class="stat-label">Páginas</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-num" id="statAvgScore">—</span>
+            <span class="stat-label">Promedio</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-num color-fail" id="statTotalErrors">0</span>
+            <span class="stat-label">Errores</span>
+          </div>
+        </div>
+        
+        <div class="page-selector-wrap">
+          <label for="sitemapPageSelector">Ver detalles de una página:</label>
+          <select id="sitemapPageSelector" class="page-selector">
+            <option value="">-- Selecciona una página --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Detail views for selected sitemap page -->
+      <div id="sitemapPageSummary" class="summary hidden">
+        <div class="score-card" id="sitemapScoreSEO">
+          <div class="score-num" id="sitemapNumSEO">—</div>
+          <div class="score-label">SEO</div>
+        </div>
+        <div class="score-card" id="sitemapScorePerf">
+          <div class="score-num" id="sitemapNumPerf">—</div>
+          <div class="score-label">Performance</div>
+        </div>
+        <div class="score-card" id="sitemapScoreMobile">
+          <div class="score-num" id="sitemapNumMobile">—</div>
+          <div class="score-label">Mobile</div>
+        </div>
+        <div class="score-card" id="sitemapScoreA11y">
+          <div class="score-num" id="sitemapNumA11y">—</div>
+          <div class="score-label">A11y</div>
+        </div>
+      </div>
+      <div id="sitemapPageDetails" class="results hidden"></div>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>

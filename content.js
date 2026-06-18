@@ -22,6 +22,46 @@ const WFAuditor = {
   // ─────────────────────────────────────────────
   // HELPERS
   // ─────────────────────────────────────────────
+  registerElementError(el, additionalProps = {}) {
+    if (!el) return null;
+    let wfaId = el.getAttribute('data-wfa-id');
+    if (!wfaId) {
+      wfaId = 'wfa-' + Math.random().toString(36).substring(2, 11);
+      el.setAttribute('data-wfa-id', wfaId);
+    }
+    let html = el.outerHTML;
+    if (html.length > 1200) {
+      html = html.substring(0, 600) + ' ... [TRUNCADO] ... ' + html.substring(html.length - 400);
+    }
+    return {
+      wfaId,
+      selector: this.getUniqueSelector(el),
+      html,
+      ...additionalProps
+    };
+  },
+
+  getUniqueSelector(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
+    const parts = [];
+    let cur = el;
+    while (cur && cur.nodeType === Node.ELEMENT_NODE) {
+      let name = cur.nodeName.toLowerCase();
+      if (cur.id) {
+        parts.unshift('#' + cur.id);
+        break;
+      }
+      let sibling = cur;
+      let nth = 1;
+      while (sibling = sibling.previousElementSibling) {
+        if (sibling.nodeName.toLowerCase() === name) nth++;
+      }
+      parts.unshift(`${name}:nth-of-type(${nth})`);
+      cur = cur.parentElement;
+    }
+    return parts.join(' > ');
+  },
+
   getMetaContent(name) {
     const el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
     return el ? el.getAttribute('content') || '' : null;
@@ -89,11 +129,13 @@ const WFAuditor = {
 
     // Headings - H1 presente y único
     const h1s = Array.from(document.querySelectorAll('h1'));
+    const h1Errors = h1s.length > 1 ? h1s.map(h => this.registerElementError(h, { text: h.innerText.trim().substring(0, 40) })) : [];
     checks.push({
       id: 'h1-tag',
       name: 'H1 Tag',
       status: h1s.length === 1 ? 'pass' : h1s.length === 0 ? 'fail' : 'warn',
       detail: h1s.length === 0 ? 'No hay H1 en la página' : h1s.length > 1 ? `${h1s.length} H1 encontrados (debe ser solo 1)` : `H1: "${h1s[0].innerText.trim().substring(0,60)}"`,
+      errors: h1Errors,
       fix: h1s.length === 0
         ? 'En Webflow: Selecciona el título principal → Settings (⚙️) → Tag → H1.'
         : h1s.length > 1
@@ -109,7 +151,7 @@ const WFAuditor = {
       const level = parseInt(h.tagName.replace('H',''));
       const text = (h.innerText || '').trim().replace(/\n/g,' ').substring(0,60);
       if (i > 0 && level > prevLevel + 1) {
-        headingErrors.push({ tag: h.tagName, text, cls: h.className, prev: prevLevel });
+        headingErrors.push(this.registerElementError(h, { tag: h.tagName, text, prev: prevLevel }));
       }
       prevLevel = level;
       return `${h.tagName}: "${text}"`;
@@ -142,7 +184,7 @@ const WFAuditor = {
       detail: imgsNoAlt.length === 0
         ? `${imgs.length} imágenes, todas con atributo alt`
         : `${imgsNoAlt.length} imagen(es) sin atributo alt`,
-      errors: imgsNoAlt.slice(0,10).map(img => ({ src: (img.getAttribute('src')||'').substring(0,80), cls: img.className.substring(0,40) })),
+      errors: imgsNoAlt.slice(0,15).map(img => this.registerElementError(img, { src: (img.getAttribute('src')||'').substring(0,80) })),
       fix: imgsNoAlt.length > 0
         ? 'En Webflow: selecciona la imagen → Settings (⚙️) → Alt Text. Para imágenes decorativas escribe un espacio o usa aria-hidden="true" en Custom Attributes.'
         : null
@@ -213,7 +255,7 @@ const WFAuditor = {
       detail: iframesNoTitle.length === 0
         ? `${iframes.length} iframes con título`
         : `${iframesNoTitle.length} iframe(s) sin atributo title`,
-      errors: iframesNoTitle.slice(0,5).map(f => ({ src: (f.getAttribute('src')||'sin src').substring(0,80) })),
+      errors: iframesNoTitle.slice(0,10).map(f => this.registerElementError(f, { src: (f.getAttribute('src')||'sin src').substring(0,80) })),
       fix: iframesNoTitle.length > 0
         ? 'En Webflow: selecciona el embed/iframe → Custom Attributes → agrega title con una descripción del contenido del iframe (ej: "Video de YouTube", "Mapa de Google").'
         : null
@@ -267,7 +309,16 @@ const WFAuditor = {
       detail: blockingScripts.length === 0
         ? 'No se detectaron scripts bloqueantes obvios'
         : `${blockingScripts.length} script(s) sin async/defer`,
-      errors: blockingScripts.slice(0,5).map(s => ({ src: (s.getAttribute('src')||'').substring(0,80) })),
+      errors: blockingScripts.slice(0,10).map(s => {
+        let html = s.outerHTML;
+        if (html.length > 1200) {
+          html = html.substring(0, 600) + ' ... [TRUNCADO] ... ' + html.substring(html.length - 400);
+        }
+        return {
+          src: (s.getAttribute('src')||'').substring(0,80),
+          html: html
+        };
+      }),
       fix: blockingScripts.length > 0
         ? 'En Webflow: Project Settings → Custom Code → Body (en vez de Head) para scripts de terceros. O agrega los atributos async/defer en el tag del script.'
         : null
@@ -332,7 +383,7 @@ const WFAuditor = {
       name: 'Animated GIFs',
       status: gifs.length === 0 ? 'pass' : 'warn',
       detail: gifs.length === 0 ? 'No se encontraron GIFs animados' : `${gifs.length} GIF(s) encontrado(s)`,
-      errors: gifs.slice(0,5).map(g => ({ src: (g.getAttribute('src')||'').substring(0,80) })),
+      errors: gifs.slice(0,10).map(g => this.registerElementError(g, { src: (g.getAttribute('src')||'').substring(0,80) })),
       fix: gifs.length > 0
         ? 'Convierte los GIFs a video WebM/MP4 con un servicio como Cloudinary o FFmpeg. En Webflow usa un elemento Video en lugar de Image para estos casos.'
         : null
@@ -401,9 +452,9 @@ const WFAuditor = {
       detail: smallTargets.length === 0
         ? 'Todos los elementos interactivos tienen tamaño adecuado (≥44×44px)'
         : `${smallTargets.length} elemento(s) con área de toque menor a 44×44px`,
-      errors: smallTargets.slice(0,5).map(el => {
+      errors: smallTargets.slice(0,15).map(el => {
         const r = el.getBoundingClientRect();
-        return { tag: el.tagName, text: (el.innerText||'').trim().substring(0,30), size: `${Math.round(r.width)}×${Math.round(r.height)}px` };
+        return this.registerElementError(el, { tag: el.tagName, text: (el.innerText||'').trim().substring(0,30), size: `${Math.round(r.width)}×${Math.round(r.height)}px` });
       }),
       fix: smallTargets.length > 0
         ? 'En Webflow: selecciona el elemento → Style panel → agrega padding mínimo o un min-width/min-height de 44px para mejorar la usabilidad táctil.'
@@ -427,9 +478,9 @@ const WFAuditor = {
       detail: smallFonts.length === 0
         ? 'Todos los textos tienen tamaño legible (≥12px)'
         : `${smallFonts.length} texto(s) con font-size menor a 12px`,
-      errors: smallFonts.slice(0,5).map(el => {
+      errors: smallFonts.slice(0,15).map(el => {
         const s = window.getComputedStyle(el);
-        return { text: (el.innerText||'').substring(0,30), size: s.fontSize, cls: el.className.substring(0,40) };
+        return this.registerElementError(el, { text: (el.innerText||'').substring(0,30), size: s.fontSize });
       }),
       fix: smallFonts.length > 0
         ? 'En Webflow: selecciona el elemento → Style panel → Typography → Font Size. El mínimo recomendado para móvil es 16px para texto de cuerpo.'
@@ -472,10 +523,10 @@ const WFAuditor = {
       detail: badBtns.length === 0
         ? `${buttons.length} botones con nombre accesible`
         : `${badBtns.length} botón/es sin nombre accesible`,
-      errors: badBtns.slice(0,10).map(btn => {
+      errors: badBtns.slice(0,15).map(btn => {
         const p2 = btn.parentElement && btn.parentElement.parentElement;
         const ctx = p2 ? (p2.innerText||'').trim().replace(/\n/g,' ').substring(0,60) : '';
-        return { cls: btn.className.substring(0,60), ctx, html: btn.outerHTML.substring(0,150) };
+        return this.registerElementError(btn, { ctx });
       }),
       fix: badBtns.length > 0
         ? 'En Webflow: selecciona el botón → Settings (⚙️) → Custom Attributes → "+" → Name: aria-label → Value: descripción de la acción. Para botones overlay con clase clickable_btn, agrega el aria-label directamente al botón.'
@@ -495,7 +546,7 @@ const WFAuditor = {
       detail: badLinks.length === 0
         ? `${links.length} links con nombre discernible`
         : `${badLinks.length} link(s) sin nombre discernible`,
-      errors: badLinks.slice(0,10).map(link => {
+      errors: badLinks.slice(0,15).map(link => {
         const p2 = link.parentElement && link.parentElement.parentElement;
         const ctx = p2 ? (p2.innerText||'').trim().replace(/\n/g,' ').substring(0,60) : '';
         return { href: (link.getAttribute('href')||'').substring(0,70), cls: link.className.substring(0,60), ctx };
@@ -512,7 +563,9 @@ const WFAuditor = {
     hEls.forEach((h, i) => {
       const level = parseInt(h.tagName.replace('H',''));
       const text = (h.innerText||'').trim().replace(/\n/g,' ').substring(0,60);
-      if (i > 0 && level > prevLvl + 1) hErrors.push({ tag: h.tagName, text, prev: prevLvl, cls: h.className });
+      if (i > 0 && level > prevLvl + 1) {
+        hErrors.push(this.registerElementError(h, { tag: h.tagName, text, prev: prevLvl }));
+      }
       prevLvl = level;
     });
     checks.push({
@@ -541,7 +594,7 @@ const WFAuditor = {
       detail: imgsNoAlt.length === 0
         ? `${allImgs.length} imágenes con atributo alt`
         : `${imgsNoAlt.length} imagen(es) sin alt`,
-      errors: imgsNoAlt.slice(0,10).map(img => ({ src: (img.getAttribute('src')||'').substring(0,80) })),
+      errors: imgsNoAlt.slice(0,15).map(img => this.registerElementError(img, { src: (img.getAttribute('src')||'').substring(0,80) })),
       fix: imgsNoAlt.length > 0
         ? 'En Webflow: selecciona la imagen → Settings (⚙️) → Alt Text. Para imágenes puramente decorativas pon alt="" y/o agrega aria-hidden="true" en Custom Attributes.'
         : null
@@ -576,11 +629,20 @@ const WFAuditor = {
     const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id).filter(Boolean);
     const duplicateIds = allIds.filter((id, idx) => allIds.indexOf(id) !== idx);
     const uniqueDupes = [...new Set(duplicateIds)];
+    const dupeIdErrors = [];
+    if (uniqueDupes.length > 0) {
+      document.querySelectorAll('[id]').forEach(el => {
+        if (uniqueDupes.includes(el.id)) {
+          dupeIdErrors.push(this.registerElementError(el, { id: el.id }));
+        }
+      });
+    }
     checks.push({
       id: 'duplicate-id-aria',
       name: 'Duplicate ARIA IDs',
       status: uniqueDupes.length === 0 ? 'pass' : 'fail',
       detail: uniqueDupes.length === 0 ? 'No hay IDs duplicados' : `${uniqueDupes.length} ID(s) duplicado(s): ${uniqueDupes.slice(0,5).join(', ')}`,
+      errors: dupeIdErrors.slice(0, 15),
       fix: uniqueDupes.length > 0
         ? `IDs duplicados encontrados: ${uniqueDupes.join(', ')}. En Webflow: selecciona cada elemento con ID duplicado → Settings (⚙️) → Element ID → asigna un ID único.`
         : null
@@ -605,7 +667,7 @@ const WFAuditor = {
       detail: inputsNoLabel.length === 0
         ? `${inputs.length} campos de formulario con label`
         : `${inputsNoLabel.length} campo(s) sin label accesible`,
-      errors: inputsNoLabel.slice(0,5).map(inp => ({ type: inp.getAttribute('type')||inp.tagName, placeholder: inp.getAttribute('placeholder')||'', cls: inp.className.substring(0,40) })),
+      errors: inputsNoLabel.slice(0,15).map(inp => this.registerElementError(inp, { type: inp.getAttribute('type')||inp.tagName, placeholder: inp.getAttribute('placeholder')||'' })),
       fix: inputsNoLabel.length > 0
         ? 'En Webflow: cada Form Input debe tener un Label asociado. Selecciona el Label → Settings → "For" → escoge el input correspondiente. Alternativamente, agrega aria-label en Custom Attributes del input.'
         : null
@@ -621,7 +683,7 @@ const WFAuditor = {
       name: 'Tabindex Values',
       status: highTabindex.length === 0 ? 'pass' : 'warn',
       detail: highTabindex.length === 0 ? 'No hay tabindex mayor a 0' : `${highTabindex.length} elemento(s) con tabindex > 0`,
-      errors: highTabindex.slice(0,5).map(el => ({ tag: el.tagName, tabindex: el.getAttribute('tabindex'), cls: el.className.substring(0,40) })),
+      errors: highTabindex.slice(0,15).map(el => this.registerElementError(el, { tag: el.tagName, tabindex: el.getAttribute('tabindex') })),
       fix: highTabindex.length > 0
         ? 'En Webflow: selecciona el elemento → Custom Attributes → cambia tabindex a 0 o -1. Valores positivos alteran el orden natural de foco y causan confusión en lectores de pantalla.'
         : null
@@ -639,7 +701,7 @@ const WFAuditor = {
       detail: hiddenWithFocusable.length === 0
         ? 'Ningún elemento aria-hidden contiene hijos focusables'
         : `${hiddenWithFocusable.length} elemento(s) aria-hidden contienen hijos que reciben foco`,
-      errors: hiddenWithFocusable.slice(0,5).map(el => ({ cls: el.className.substring(0,60), html: el.outerHTML.substring(0,150) })),
+      errors: hiddenWithFocusable.slice(0,10).map(el => this.registerElementError(el, {})),
       fix: hiddenWithFocusable.length > 0
         ? 'En Webflow: agrega tabindex="-1" a todos los elementos interactivos dentro del contenedor aria-hidden. O elimina aria-hidden del contenedor si el contenido es funcional. Custom Attributes → tabindex → -1.'
         : null
@@ -686,6 +748,7 @@ const WFAuditor = {
       name: 'Video Captions',
       status: videosNoCaptions.length === 0 ? 'pass' : videos.length === 0 ? 'pass' : 'warn',
       detail: videos.length === 0 ? 'No hay elementos <video>' : videosNoCaptions.length === 0 ? `${videos.length} video(s) con captions` : `${videosNoCaptions.length} video(s) sin track de captions`,
+      errors: videosNoCaptions.slice(0, 10).map(v => this.registerElementError(v, { src: (v.getAttribute('src')||'sin src').substring(0,80) })),
       fix: videosNoCaptions.length > 0
         ? 'En Webflow: los elementos Video nativos no soportan <track> directamente. Usa un Embed con código HTML personalizado que incluya el tag <track kind="captions" src="subtitulos.vtt" srclang="es" label="Español">.'
         : null
@@ -699,6 +762,7 @@ const WFAuditor = {
       name: 'Object Alt Text',
       status: objectsNoAlt.length === 0 ? 'pass' : 'fail',
       detail: objects.length === 0 ? 'No hay elementos <object>' : objectsNoAlt.length === 0 ? 'Todos los <object> tienen texto alternativo' : `${objectsNoAlt.length} <object> sin texto alternativo`,
+      errors: objectsNoAlt.slice(0, 10).map(o => this.registerElementError(o, {})),
       fix: objectsNoAlt.length > 0
         ? 'En Webflow: si usas embeds con <object>, agrega aria-label en el Custom Attributes del embed, o incluye texto descriptivo como contenido fallback dentro del tag <object>.'
         : null
@@ -711,7 +775,10 @@ const WFAuditor = {
       const parents = Array.from(document.querySelectorAll(`[role="${role}"]`));
       parents.forEach(parent => {
         const hasChild = parent.querySelector(`[role="${childRole}"]`);
-        if (!hasChild) ariaChildErrors.push({ role, childRole, cls: parent.className.substring(0,50) });
+        if (!hasChild) {
+          const err = this.registerElementError(parent, { role, childRole });
+          if (err) ariaChildErrors.push(err);
+        }
       });
     });
     checks.push({
@@ -719,7 +786,7 @@ const WFAuditor = {
       name: 'ARIA Required Children',
       status: ariaChildErrors.length === 0 ? 'pass' : 'fail',
       detail: ariaChildErrors.length === 0 ? 'Todos los roles ARIA tienen sus hijos requeridos' : `${ariaChildErrors.length} elemento(s) sin los roles hijos requeridos`,
-      errors: ariaChildErrors.slice(0,5),
+      errors: ariaChildErrors.slice(0,10),
       fix: ariaChildErrors.length > 0
         ? ariaChildErrors.map(e => `• role="${e.role}" requiere hijos con role="${e.childRole}". En Webflow: Custom Attributes del elemento hijo → role → ${e.childRole}.`).join('\n')
         : null
@@ -736,7 +803,7 @@ const WFAuditor = {
       name: 'ARIA Roles Válidos',
       status: invalidRoles.length === 0 ? 'pass' : 'fail',
       detail: invalidRoles.length === 0 ? 'Todos los roles ARIA son válidos' : `${invalidRoles.length} rol(es) ARIA inválido(s)`,
-      errors: invalidRoles.slice(0,5).map(el => ({ role: el.getAttribute('role'), tag: el.tagName, cls: el.className.substring(0,40) })),
+      errors: invalidRoles.slice(0,10).map(el => this.registerElementError(el, { role: el.getAttribute('role'), tag: el.tagName })),
       fix: invalidRoles.length > 0
         ? invalidRoles.map(el => `• role="${el.getAttribute('role')}" no es válido en <${el.tagName.toLowerCase()}>. En Webflow: Custom Attributes → role → usa un valor ARIA válido.`).join('\n')
         : null
@@ -753,25 +820,47 @@ const WFAuditor = {
       name: 'List Items en contenedor válido',
       status: orphanLi.length === 0 ? 'pass' : 'fail',
       detail: orphanLi.length === 0 ? 'Todos los <li> están dentro de <ul> o <ol>' : `${orphanLi.length} <li> fuera de lista`,
+      errors: orphanLi.slice(0, 10).map(li => this.registerElementError(li, {})),
       fix: orphanLi.length > 0
         ? 'En Webflow: los elementos List Item deben estar siempre dentro de un List. Si los moviste manualmente, re-estructúralos dentro de un componente List.'
         : null
     });
 
     // accesskeys únicos
-    const accesskeys = Array.from(document.querySelectorAll('[accesskey]')).map(el => el.getAttribute('accesskey'));
+    const accesskeyEls = Array.from(document.querySelectorAll('[accesskey]'));
+    const accesskeys = accesskeyEls.map(el => el.getAttribute('accesskey'));
     const dupAccesskeys = accesskeys.filter((k, i) => accesskeys.indexOf(k) !== i);
+    const uniqueDupAccesskeys = [...new Set(dupAccesskeys)];
+    const accesskeyErrors = [];
+    accesskeyEls.forEach(el => {
+      const val = el.getAttribute('accesskey');
+      if (uniqueDupAccesskeys.includes(val)) {
+        const err = this.registerElementError(el, { key: val });
+        if (err) accesskeyErrors.push(err);
+      }
+    });
     checks.push({
       id: 'accesskeys',
       name: 'AccessKeys Únicos',
       status: dupAccesskeys.length === 0 ? 'pass' : 'fail',
-      detail: dupAccesskeys.length === 0 ? 'No hay accesskeys duplicados' : `Accesskeys duplicados: ${[...new Set(dupAccesskeys)].join(', ')}`,
+      detail: dupAccesskeys.length === 0 ? 'No hay accesskeys duplicados' : `Accesskeys duplicados: ${uniqueDupes.join(', ')}`,
+      errors: accesskeyErrors.slice(0, 10),
       fix: dupAccesskeys.length > 0 ? 'Asegúrate de que cada accesskey sea único. En Webflow: Custom Attributes → accesskey → valor único.' : null
     });
 
     return checks;
   }
 };
+
+function wfaRemoveHighlight() {
+  const box = document.getElementById('wfa-highlight-box');
+  if (box) box.remove();
+  const toast = document.getElementById('wfa-highlight-toast');
+  if (toast) toast.remove();
+  document.removeEventListener('click', wfaRemoveHighlight);
+  window.removeEventListener('resize', wfaRemoveHighlight);
+  window.removeEventListener('scroll', wfaRemoveHighlight);
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'runAudit') {
@@ -780,6 +869,99 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true, data: results });
     } catch(e) {
       sendResponse({ success: false, error: e.message });
+    }
+  } else if (request.action === 'locateElement') {
+    wfaRemoveHighlight();
+    
+    // Attempt search by data-wfa-id first, then fallback to selector
+    let el = request.id ? document.querySelector(`[data-wfa-id="${request.id}"]`) : null;
+    if (!el && request.selector) {
+      el = document.querySelector(request.selector);
+    }
+    
+    if (el) {
+      // Create pulse animation in head if it doesn't exist yet
+      if (!document.getElementById('wfa-styles')) {
+        const style = document.createElement('style');
+        style.id = 'wfa-styles';
+        style.textContent = `
+          @keyframes wfa-pulse-glow {
+            0% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
+            50% { border-color: #4353FF; box-shadow: 0 0 25px rgba(67, 83, 255, 0.9), 0 0 0 9999px rgba(0, 0, 0, 0.45); }
+            100% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
+          }
+          .wfa-box-active {
+            animation: wfa-pulse-glow 1.5s ease-in-out infinite !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Wait for scrolling to finish, then position our highlight box accurately
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+        // Draw highlight container
+        const highlightBox = document.createElement('div');
+        highlightBox.id = 'wfa-highlight-box';
+        highlightBox.className = 'wfa-box-active';
+        highlightBox.style.cssText = `
+          position: absolute !important;
+          top: ${(rect.top + scrollTop - 4)}px !important;
+          left: ${(rect.left + scrollLeft - 4)}px !important;
+          width: ${(rect.width + 8)}px !important;
+          height: ${(rect.height + 8)}px !important;
+          border: 4px solid #FF4353 !important;
+          border-radius: 6px !important;
+          z-index: 9999997 !important;
+          pointer-events: none !important;
+          box-sizing: border-box !important;
+        `;
+        document.body.appendChild(highlightBox);
+
+        // Toast message banner (dismissible via any click)
+        const toast = document.createElement('div');
+        toast.id = 'wfa-highlight-toast';
+        toast.style.cssText = `
+          position: fixed !important;
+          top: 20px !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          background: #1a1a24 !important;
+          color: #ffffff !important;
+          padding: 8px 16px !important;
+          border-radius: 8px !important;
+          font-size: 12px !important;
+          font-weight: 600;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.6) !important;
+          border: 1px solid #3e3e56 !important;
+          z-index: 9999999 !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+        `;
+        toast.innerHTML = `
+          <span>📍 Elemento localizado. Haz clic en la pantalla para quitar el foco.</span>
+          <button style="background: #4353FF !important; color: white !important; border: none !important; padding: 4px 8px !important; border-radius: 4px !important; font-size: 11px !important; cursor: pointer !important; font-weight: bold;">Cerrar</button>
+        `;
+        document.body.appendChild(toast);
+
+        // Listeners to dismiss highlight
+        setTimeout(() => {
+          document.addEventListener('click', wfaRemoveHighlight);
+          window.addEventListener('resize', wfaRemoveHighlight);
+          window.addEventListener('scroll', wfaRemoveHighlight);
+        }, 100);
+      }, 400);
+
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: 'Elemento no encontrado en la página. Puede haber cambiado la estructura.' });
     }
   }
   return true;

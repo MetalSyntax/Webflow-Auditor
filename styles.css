@@ -333,3 +333,236 @@ body {
 .results {
   padding-bottom: 10px;
 }
+
+/* ── TABS ── */
+.tabs-nav {
+  display: flex;
+  background: #1e1e38;
+  border-bottom: 1px solid #2e2e50;
+}
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  color: #b0b0cc;
+  border: none;
+  padding: 10px 0;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+.tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tab-btn.active {
+  color: #4353ff;
+  border-bottom-color: #4353ff;
+  background: rgba(67, 83, 255, 0.08);
+}
+.tab-content {
+  display: block;
+}
+
+/* ── SITEMAP SECTION ── */
+.sitemap-input-wrap {
+  background: #ffffff;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e8e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.input-container {
+  display: flex;
+  gap: 6px;
+}
+.input-container input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d0d0e8;
+  border-radius: 6px;
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-container input:focus {
+  border-color: #4353ff;
+}
+.sitemap-actions-row {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.red-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.red-btn:hover {
+  background: #fcd3d3;
+}
+
+/* ── SITEMAP PROGRESS ── */
+.sitemap-progress {
+  padding: 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8f0;
+}
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: #f0f0f8;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #4353ff, #00d2ff);
+  transition: width 0.3s ease;
+}
+.progress-status {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+}
+
+/* ── SITEMAP SUMMARY CARD ── */
+.sitemap-summary-card {
+  background: #ffffff;
+  margin: 10px 14px;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e8e8f0;
+}
+.sitemap-summary-card h3 {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #0f0f23;
+}
+.sitemap-grid-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.stat-num {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: #334155;
+}
+.stat-box .color-fail {
+  color: #dc2626;
+}
+.stat-label {
+  font-size: 9px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 2px;
+  display: block;
+}
+.page-selector-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+.page-selector-wrap label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+.page-selector {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  background: #ffffff;
+}
+
+/* ── ELEMENT ACCORDION & CODE HTML ── */
+.check-error-item-container {
+  margin-bottom: 6px;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+.check-error-item-container:last-child {
+  margin-bottom: 0;
+}
+.check-error-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  gap: 8px;
+  border: none;
+  margin-bottom: 0;
+  border-radius: 0;
+  background: #fff;
+  font-size: 10px;
+}
+.check-error-text {
+  flex: 1;
+  word-break: break-all;
+  line-height: 1.4;
+}
+.wfa-locate-btn {
+  background: #4353ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.wfa-locate-btn:hover {
+  background: #3341dd;
+}
+.wfa-code-detail {
+  background: #1a1a24;
+  border-top: 1px solid #2e2e3e;
+  padding: 6px 8px;
+}
+.wfa-code-header {
+  font-size: 9px;
+  color: #8888a0;
+  font-weight: bold;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+.wfa-code-block {
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+.wfa-code-block code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px;
+  color: #ff79c6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: block;
+}
+
