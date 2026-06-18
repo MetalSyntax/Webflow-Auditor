@@ -279,11 +279,29 @@ body {
   gap: 8px;
 }
 .check-icon {
-  font-size: 14px;
-  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.status-pass .check-icon {
+  background-color: #6b7280; /* Gray circle for passed */
+}
+.status-fail .check-icon {
+  background-color: #dc2626; /* Red circle for error */
+}
+.status-warn .check-icon {
+  background-color: #d97706; /* Orange circle for warning */
+}
+.status-info .check-icon {
+  background-color: #3b82f6; /* Blue circle for info */
 }
 .check-name {
   flex: 1;
@@ -549,6 +567,9 @@ body {
   border-radius: 8px;
   margin-bottom: 12px;
   font-size: 12px;
-  line-height: 1.5;
   border: 1px solid #fca5a5;
+}
+
+.hidden {
+  display: none !important;
 }

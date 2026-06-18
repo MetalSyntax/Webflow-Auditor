@@ -17,10 +17,10 @@ const CATEGORY_ID_MAP = {
 };
 
 const STATUS_CONFIG = {
-  pass: { icon: "✅", label: "OK", cls: "status-pass" },
-  warn: { icon: "⚠️", label: "Advertencia", cls: "status-warn" },
-  fail: { icon: "❌", label: "Error", cls: "status-fail" },
-  info: { icon: "ℹ️", label: "Info", cls: "status-info" },
+  pass: { icon: "✓", label: "OK", cls: "status-pass" },
+  warn: { icon: "!", label: "Advertencia", cls: "status-warn" },
+  fail: { icon: "✕", label: "Error", cls: "status-fail" },
+  info: { icon: "i", label: "Info", cls: "status-info" },
 };
 
 let lastSingleResults = null;
