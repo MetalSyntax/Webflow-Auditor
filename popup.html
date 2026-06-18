@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webflow Auditor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="12" fill="#4353FF"/>
+        <path d="M7 8l3 8 2-5 2 5 3-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="header-title">Webflow Auditor</span>
+    </div>
+    <div id="pageUrl" class="header-url">—</div>
+  </div>
+
+  <div class="audit-btn-wrap">
+    <button id="runAudit" class="audit-btn">
+      <span id="btnText">🔍 Auditar página</span>
+      <span id="btnLoader" class="loader hidden"></span>
+    </button>
+    <button id="exportBtn" class="export-btn hidden" title="Exportar reporte">📋 Exportar</button>
+  </div>
+
+  <!-- SCORE SUMMARY -->
+  <div id="summary" class="summary hidden">
+    <div class="score-card" id="scoreSEO">
+      <div class="score-num" id="numSEO">—</div>
+      <div class="score-label">SEO</div>
+    </div>
+    <div class="score-card" id="scorePerf">
+      <div class="score-num" id="numPerf">—</div>
+      <div class="score-label">Performance</div>
+    </div>
+    <div class="score-card" id="scoreMobile">
+      <div class="score-num" id="numMobile">—</div>
+      <div class="score-label">Mobile</div>
+    </div>
+    <div class="score-card" id="scoreA11y">
+      <div class="score-num" id="numA11y">—</div>
+      <div class="score-label">A11y</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" class="results hidden"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

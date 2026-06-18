@@ -1,0 +1,12 @@
+# Clave privada de la extensión — guárdala en un lugar seguro (1Password, etc.)
+.keys/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Archivos de backup generados por sed en macOS
+*.bak
+
+# Plan interno
+plan-and-code.md
