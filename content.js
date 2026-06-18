@@ -2,8 +2,10 @@
 // WEBFLOW SEO & A11Y AUDITOR — content.js
 // Corre en el contexto de la página activa
 // ============================================================
+if (!window.WFAuditorLoaded) {
+  window.WFAuditorLoaded = true;
 
-const WFAuditor = {
+  const WFAuditor = {
 
   run() {
     return {
@@ -853,7 +855,7 @@ const WFAuditor = {
       id: 'accesskeys',
       name: 'AccessKeys Únicos',
       status: dupAccesskeys.length === 0 ? 'pass' : 'fail',
-      detail: dupAccesskeys.length === 0 ? 'No hay accesskeys duplicados' : `Accesskeys duplicados: ${uniqueDupes.join(', ')}`,
+      detail: dupAccesskeys.length === 0 ? 'No hay accesskeys duplicados' : `Accesskeys duplicados: ${uniqueDupAccesskeys.join(', ')}`,
       errors: accesskeyErrors.slice(0, 10),
       fix: dupAccesskeys.length > 0 ? 'Asegúrate de que cada accesskey sea único. En Webflow: Custom Attributes → accesskey → valor único.' : null
     });
@@ -992,3 +994,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return true;
 });
+}
