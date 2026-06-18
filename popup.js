@@ -179,6 +179,7 @@ function renderResults(data, summaryId, resultsId) {
     
     if (numEl && cardEl) {
       numEl.textContent = score + "%";
+      cardEl.style.setProperty('--percentage', score);
       cardEl.classList.remove("score-bad", "score-warn", "score-good");
       cardEl.classList.add(
         score >= 80 ? "score-good" : score >= 50 ? "score-warn" : "score-bad"
