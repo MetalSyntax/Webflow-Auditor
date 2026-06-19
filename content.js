@@ -4,13 +4,27 @@
 // ============================================================
 if (!window.WFAuditorLoaded) {
   window.WFAuditorLoaded = true;
+  let doc = typeof window !== 'undefined' && window.document ? window.document : null;
 
   const WFAuditor = {
 
-  run() {
+  run(customDoc, customUrl) {
+    doc = customDoc || (typeof document !== 'undefined' ? document : null);
+    
+    const rawUrl = customUrl || (typeof location !== 'undefined' ? location.href : '');
+    try {
+      this.currentUrl = new URL(rawUrl);
+    } catch(e) {
+      this.currentUrl = {
+        href: rawUrl,
+        protocol: rawUrl.startsWith('https') ? 'https:' : 'http:',
+        pathname: rawUrl.split('?')[0].split('#')[0].replace(/^https?:\/\/[^\/]+/, '') || '/'
+      };
+    }
+
     return {
-      url: location.href,
-      title: document.title,
+      url: rawUrl,
+      title: doc ? doc.title : '',
       timestamp: new Date().toISOString(),
       categories: {
         seo: this.auditSEO(),
@@ -75,7 +89,7 @@ if (!window.WFAuditorLoaded) {
   },
 
   getMetaContent(name) {
-    const el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+    const el = doc.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
     return el ? el.getAttribute('content') || '' : null;
   },
 
@@ -112,7 +126,7 @@ if (!window.WFAuditorLoaded) {
     const checks = [];
 
     // Title Tag
-    const title = document.title;
+    const title = doc.title;
     checks.push({
       id: 'title-tag',
       name: 'Title Tag',
@@ -140,7 +154,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Headings - H1 presente y único
-    const h1s = Array.from(document.querySelectorAll('h1'));
+    const h1s = Array.from(doc.querySelectorAll('h1'));
     const h1Errors = h1s.length > 1 ? h1s.map(h => this.registerElementError(h, { text: h.innerText.trim().substring(0, 40) })) : [];
     checks.push({
       id: 'h1-tag',
@@ -156,7 +170,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Heading Order
-    const headings = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+    const headings = Array.from(doc.querySelectorAll('h1,h2,h3,h4,h5,h6'));
     let prevLevel = 0;
     const headingErrors = [];
     const headingMap = headings.map((h, i) => {
@@ -183,7 +197,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Image Alt Attributes
-    const imgs = Array.from(document.querySelectorAll('img'));
+    const imgs = Array.from(doc.querySelectorAll('img'));
     const imgsNoAlt = imgs.filter(img => {
       if (this.isHiddenFromAT(img)) return false;
       const alt = img.getAttribute('alt');
@@ -213,39 +227,40 @@ if (!window.WFAuditorLoaded) {
     });
 
     // SSL
+    const isHttps = this.currentUrl && this.currentUrl.protocol === 'https:';
     checks.push({
       id: 'ssl',
       name: 'SSL / HTTPS',
-      status: location.protocol === 'https:' ? 'pass' : 'fail',
-      detail: location.protocol === 'https:' ? 'Sitio usa HTTPS correctamente' : 'Sitio NO usa HTTPS',
-      fix: location.protocol !== 'https:'
+      status: isHttps ? 'pass' : 'fail',
+      detail: isHttps ? 'Sitio usa HTTPS correctamente' : 'Sitio NO usa HTTPS',
+      fix: !isHttps
         ? 'En Webflow: Publishing → Custom Domain → habilita SSL (Webflow lo gestiona automáticamente con Let\'s Encrypt).'
         : null
     });
 
     // Underscores en URLs
-    const hasUnderscores = location.pathname.includes('_');
+    const hasUnderscores = this.currentUrl && this.currentUrl.pathname.includes('_');
     checks.push({
       id: 'url-underscores',
       name: 'Underscores en URL',
       status: hasUnderscores ? 'warn' : 'pass',
-      detail: hasUnderscores ? `URL actual usa guiones bajos: ${location.pathname}` : 'URL usa guiones medios correctamente',
+      detail: hasUnderscores ? `URL actual usa guiones bajos: ${this.currentUrl.pathname}` : 'URL usa guiones medios correctamente',
       fix: hasUnderscores
         ? 'En Webflow: Pages → Settings de la página → Slug. Cambia los guiones bajos (_) por guiones medios (-).'
         : null
     });
 
-    // document.write check
+    // doc.write check
     checks.push({
-      id: 'document-write',
-      name: 'document.write()',
+      id: 'doc-write',
+      name: 'doc.write()',
       status: 'info',
-      detail: 'Requiere análisis de scripts externos para detectar uso de document.write()',
+      detail: 'Requiere análisis de scripts externos para detectar uso de doc.write()',
       fix: null
     });
 
     // Lang attribute
-    const htmlEl = document.documentElement;
+    const htmlEl = doc.documentElement;
     const lang = htmlEl.getAttribute('lang');
     checks.push({
       id: 'html-lang',
@@ -258,7 +273,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // iframes sin title
-    const iframes = Array.from(document.querySelectorAll('iframe'));
+    const iframes = Array.from(doc.querySelectorAll('iframe'));
     const iframesNoTitle = iframes.filter(f => !f.getAttribute('title'));
     checks.push({
       id: 'frame-title',
@@ -283,7 +298,7 @@ if (!window.WFAuditorLoaded) {
     const checks = [];
 
     // DOM Size
-    const domCount = document.querySelectorAll('*').length;
+    const domCount = doc.querySelectorAll('*').length;
     checks.push({
       id: 'dom-size',
       name: 'DOM Size',
@@ -311,7 +326,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Render-blocking
-    const blockingScripts = Array.from(document.querySelectorAll('script[src]')).filter(s => {
+    const blockingScripts = Array.from(doc.querySelectorAll('script[src]')).filter(s => {
       return !s.hasAttribute('async') && !s.hasAttribute('defer') && !s.hasAttribute('type');
     });
     checks.push({
@@ -336,16 +351,16 @@ if (!window.WFAuditorLoaded) {
         : null
     });
 
-    // Inline scripts con document.write
-    const scripts = Array.from(document.querySelectorAll('script:not([src])'));
-    const hasDocWrite = scripts.some(s => s.textContent.includes('document.write'));
+    // Inline scripts con doc.write
+    const scripts = Array.from(doc.querySelectorAll('script:not([src])'));
+    const hasDocWrite = scripts.some(s => s.textContent.includes('doc.write'));
     checks.push({
-      id: 'document-write-detected',
-      name: 'document.write() detectado',
+      id: 'doc-write-detected',
+      name: 'doc.write() detectado',
       status: hasDocWrite ? 'fail' : 'pass',
-      detail: hasDocWrite ? 'Se detectó uso de document.write() en scripts inline' : 'No se encontró document.write() en scripts inline',
+      detail: hasDocWrite ? 'Se detectó uso de doc.write() en scripts inline' : 'No se encontró doc.write() en scripts inline',
       fix: hasDocWrite
-        ? 'Reemplaza document.write() con métodos DOM modernos como innerHTML, createElement o insertAdjacentHTML. Revisa el Custom Code en Webflow.'
+        ? 'Reemplaza doc.write() con métodos DOM modernos como innerHTML, createElement o insertAdjacentHTML. Revisa el Custom Code en Webflow.'
         : null
     });
 
@@ -389,7 +404,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Animated GIFs
-    const gifs = Array.from(document.querySelectorAll('img[src$=".gif"], img[src*=".gif?"]'));
+    const gifs = Array.from(doc.querySelectorAll('img[src$=".gif"], img[src*=".gif?"]'));
     checks.push({
       id: 'animated-gifs',
       name: 'Animated GIFs',
@@ -411,7 +426,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Font Display
-    const fontLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"][href*="fonts"]'));
+    const fontLinks = Array.from(doc.querySelectorAll('link[rel="stylesheet"][href*="fonts"]'));
     checks.push({
       id: 'font-display',
       name: 'Font Display',
@@ -440,7 +455,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Flash
-    const flashObjects = document.querySelectorAll('object[type*="flash"], embed[type*="flash"]');
+    const flashObjects = doc.querySelectorAll('object[type*="flash"], embed[type*="flash"]');
     checks.push({
       id: 'flash',
       name: 'Flash Use',
@@ -450,7 +465,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Touch targets
-    const interactive = Array.from(document.querySelectorAll('a, button, [role="button"]'));
+    const interactive = Array.from(doc.querySelectorAll('a, button, [role="button"]'));
     const smallTargets = interactive.filter(el => {
       try {
         const rect = el.getBoundingClientRect();
@@ -474,7 +489,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Font size
-    const textEls = Array.from(document.querySelectorAll('p, span, li, td, div'));
+    const textEls = Array.from(doc.querySelectorAll('p, span, li, td, div'));
     const smallFonts = textEls.filter(el => {
       try {
         const style = window.getComputedStyle(el);
@@ -500,13 +515,13 @@ if (!window.WFAuditorLoaded) {
     });
 
     // Content size
-    const hasHScroll = document.documentElement.scrollWidth > window.innerWidth;
+    const hasHScroll = doc.documentElement.scrollWidth > window.innerWidth;
     checks.push({
       id: 'content-size',
       name: 'Content Size (sin scroll horizontal)',
       status: hasHScroll ? 'warn' : 'pass',
       detail: hasHScroll
-        ? `Scroll horizontal detectado: contenido mide ${document.documentElement.scrollWidth}px, viewport ${window.innerWidth}px`
+        ? `Scroll horizontal detectado: contenido mide ${doc.documentElement.scrollWidth}px, viewport ${window.innerWidth}px`
         : 'No hay scroll horizontal — contenido cabe en el viewport',
       fix: hasHScroll
         ? 'En Webflow: activa el Breakpoint Móvil (375px) y busca elementos con width fijo que excedan el ancho. Usa width: 100% o max-width en vez de valores fijos en píxeles.'
@@ -523,7 +538,7 @@ if (!window.WFAuditorLoaded) {
     const checks = [];
 
     // button-name
-    const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
+    const buttons = Array.from(doc.querySelectorAll('button, [role="button"]'));
     const badBtns = buttons.filter(btn => {
       if (this.isHiddenFromAT(btn)) return false;
       return !this.hasAccessibleName(btn);
@@ -546,7 +561,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // link-name
-    const links = Array.from(document.querySelectorAll('a'));
+    const links = Array.from(doc.querySelectorAll('a'));
     const badLinks = links.filter(link => {
       if (this.isHiddenFromAT(link)) return false;
       return !this.hasAccessibleName(link);
@@ -569,7 +584,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // heading-order
-    const hEls = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+    const hEls = Array.from(doc.querySelectorAll('h1,h2,h3,h4,h5,h6'));
     let prevLvl = 0;
     const hErrors = [];
     hEls.forEach((h, i) => {
@@ -594,7 +609,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // image-alt
-    const allImgs = Array.from(document.querySelectorAll('img'));
+    const allImgs = Array.from(doc.querySelectorAll('img'));
     const imgsNoAlt = allImgs.filter(img => {
       if (this.isHiddenFromAT(img)) return false;
       return img.getAttribute('alt') === null;
@@ -613,7 +628,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // html-lang
-    const htmlLang = document.documentElement.getAttribute('lang');
+    const htmlLang = doc.documentElement.getAttribute('lang');
     checks.push({
       id: 'html-has-lang',
       name: 'HTML Lang Attribute',
@@ -638,12 +653,12 @@ if (!window.WFAuditorLoaded) {
     });
 
     // duplicate-id-aria
-    const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id).filter(Boolean);
+    const allIds = Array.from(doc.querySelectorAll('[id]')).map(el => el.id).filter(Boolean);
     const duplicateIds = allIds.filter((id, idx) => allIds.indexOf(id) !== idx);
     const uniqueDupes = [...new Set(duplicateIds)];
     const dupeIdErrors = [];
     if (uniqueDupes.length > 0) {
-      document.querySelectorAll('[id]').forEach(el => {
+      doc.querySelectorAll('[id]').forEach(el => {
         if (uniqueDupes.includes(el.id)) {
           dupeIdErrors.push(this.registerElementError(el, { id: el.id }));
         }
@@ -661,14 +676,14 @@ if (!window.WFAuditorLoaded) {
     });
 
     // form labels
-    const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select'));
+    const inputs = Array.from(doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select'));
     const inputsNoLabel = inputs.filter(inp => {
       if (this.isHiddenFromAT(inp)) return false;
       const id = inp.getAttribute('id');
       const ariaLabel = inp.getAttribute('aria-label');
       const ariaLabelledBy = inp.getAttribute('aria-labelledby');
       const title = inp.getAttribute('title');
-      const hasLabel = id && document.querySelector(`label[for="${id}"]`);
+      const hasLabel = id && doc.querySelector(`label[for="${id}"]`);
       const isWrapped = inp.closest('label');
       return !hasLabel && !isWrapped && !ariaLabel && !ariaLabelledBy && !title;
     });
@@ -686,7 +701,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // tabindex > 0
-    const highTabindex = Array.from(document.querySelectorAll('[tabindex]')).filter(el => {
+    const highTabindex = Array.from(doc.querySelectorAll('[tabindex]')).filter(el => {
       const val = parseInt(el.getAttribute('tabindex'));
       return val > 0;
     });
@@ -702,7 +717,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // aria-hidden-focus
-    const ariaHiddenEls = Array.from(document.querySelectorAll('[aria-hidden="true"]'));
+    const ariaHiddenEls = Array.from(doc.querySelectorAll('[aria-hidden="true"]'));
     const hiddenWithFocusable = ariaHiddenEls.filter(el => {
       return el.querySelector('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
     });
@@ -720,12 +735,12 @@ if (!window.WFAuditorLoaded) {
     });
 
     // bypass (landmarks / skip link)
-    const hasMain = !!document.querySelector('main, [role="main"]');
-    const hasSkipLink = Array.from(document.querySelectorAll('a')).some(a => {
+    const hasMain = !!doc.querySelector('main, [role="main"]');
+    const hasSkipLink = Array.from(doc.querySelectorAll('a')).some(a => {
       const href = a.getAttribute('href') || '';
       return href.startsWith('#') && (a.innerText||'').toLowerCase().includes('skip');
     });
-    const hasLandmark = !!document.querySelector('header, nav, main, footer, aside, [role="banner"], [role="navigation"], [role="main"]');
+    const hasLandmark = !!doc.querySelector('header, nav, main, footer, aside, [role="banner"], [role="navigation"], [role="main"]');
     checks.push({
       id: 'bypass',
       name: 'Skip Link / Landmark Regions',
@@ -741,7 +756,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // meta-refresh
-    const metaRefresh = document.querySelector('meta[http-equiv="refresh"]');
+    const metaRefresh = doc.querySelector('meta[http-equiv="refresh"]');
     checks.push({
       id: 'meta-refresh',
       name: 'Meta Refresh',
@@ -753,7 +768,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // video-caption
-    const videos = Array.from(document.querySelectorAll('video'));
+    const videos = Array.from(doc.querySelectorAll('video'));
     const videosNoCaptions = videos.filter(v => !v.querySelector('track[kind="captions"], track[kind="subtitles"]'));
     checks.push({
       id: 'video-caption',
@@ -767,7 +782,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // object-alt
-    const objects = Array.from(document.querySelectorAll('object'));
+    const objects = Array.from(doc.querySelectorAll('object'));
     const objectsNoAlt = objects.filter(o => !o.getAttribute('aria-label') && !o.getAttribute('title') && !(o.innerText||'').trim());
     checks.push({
       id: 'object-alt',
@@ -784,7 +799,7 @@ if (!window.WFAuditorLoaded) {
     const rolesWithChildren = { 'list': 'listitem', 'listbox': 'option', 'menu': 'menuitem', 'radiogroup': 'radio', 'tablist': 'tab' };
     const ariaChildErrors = [];
     Object.entries(rolesWithChildren).forEach(([role, childRole]) => {
-      const parents = Array.from(document.querySelectorAll(`[role="${role}"]`));
+      const parents = Array.from(doc.querySelectorAll(`[role="${role}"]`));
       parents.forEach(parent => {
         const hasChild = parent.querySelector(`[role="${childRole}"]`);
         if (!hasChild) {
@@ -805,8 +820,8 @@ if (!window.WFAuditorLoaded) {
     });
 
     // aria-roles válidos
-    const validRoles = ['alert','alertdialog','application','article','banner','button','cell','checkbox','columnheader','combobox','complementary','contentinfo','definition','dialog','directory','document','feed','figure','form','grid','gridcell','group','heading','img','link','list','listbox','listitem','log','main','marquee','math','menu','menubar','menuitem','menuitemcheckbox','menuitemradio','navigation','none','note','option','presentation','progressbar','radio','radiogroup','region','row','rowgroup','rowheader','scrollbar','search','searchbox','separator','slider','spinbutton','status','switch','tab','table','tablist','tabpanel','term','textbox','timer','toolbar','tooltip','tree','treegrid','treeitem'];
-    const invalidRoles = Array.from(document.querySelectorAll('[role]')).filter(el => {
+    const validRoles = ['alert','alertdialog','application','article','banner','button','cell','checkbox','columnheader','combobox','complementary','contentinfo','definition','dialog','directory','doc','feed','figure','form','grid','gridcell','group','heading','img','link','list','listbox','listitem','log','main','marquee','math','menu','menubar','menuitem','menuitemcheckbox','menuitemradio','navigation','none','note','option','presentation','progressbar','radio','radiogroup','region','row','rowgroup','rowheader','scrollbar','search','searchbox','separator','slider','spinbutton','status','switch','tab','table','tablist','tabpanel','term','textbox','timer','toolbar','tooltip','tree','treegrid','treeitem'];
+    const invalidRoles = Array.from(doc.querySelectorAll('[role]')).filter(el => {
       const role = el.getAttribute('role');
       return role && !validRoles.includes(role);
     });
@@ -822,7 +837,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // list integrity
-    const lisItems = Array.from(document.querySelectorAll('li'));
+    const lisItems = Array.from(doc.querySelectorAll('li'));
     const orphanLi = lisItems.filter(li => {
       const parent = li.parentElement;
       return parent && !['UL','OL','MENU'].includes(parent.tagName);
@@ -839,7 +854,7 @@ if (!window.WFAuditorLoaded) {
     });
 
     // accesskeys únicos
-    const accesskeyEls = Array.from(document.querySelectorAll('[accesskey]'));
+    const accesskeyEls = Array.from(doc.querySelectorAll('[accesskey]'));
     const accesskeys = accesskeyEls.map(el => el.getAttribute('accesskey'));
     const dupAccesskeys = accesskeys.filter((k, i) => accesskeys.indexOf(k) !== i);
     const uniqueDupAccesskeys = [...new Set(dupAccesskeys)];
@@ -864,12 +879,268 @@ if (!window.WFAuditorLoaded) {
   }
 };
 
+window.WFAuditor = WFAuditor;
+
+
+function wfaHighlightElement(el, wfaId, selector) {
+  wfaRemoveHighlight();
+  
+  if (!el && selector) {
+    try {
+      el = doc.querySelector(selector);
+    } catch(e) {}
+  }
+
+  if (el) {
+    if (!doc.getElementById('wfa-styles')) {
+      const style = doc.createElement('style');
+      style.id = 'wfa-styles';
+      style.textContent = `
+        @keyframes wfa-pulse-glow {
+          0% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
+          50% { border-color: #4353FF; box-shadow: 0 0 25px rgba(67, 83, 255, 0.9), 0 0 0 9999px rgba(0, 0, 0, 0.45); }
+          100% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
+        }
+        .wfa-box-active {
+          animation: wfa-pulse-glow 1.5s ease-in-out infinite !important;
+        }
+      `;
+      doc.head.appendChild(style);
+    }
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      const scrollLeft = window.pageXOffset || doc.documentElement.scrollLeft;
+      const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
+
+      const highlightBox = doc.createElement('div');
+      highlightBox.id = 'wfa-highlight-box';
+      highlightBox.className = 'wfa-box-active';
+      highlightBox.style.cssText = `
+        position: absolute !important;
+        top: ${(rect.top + scrollTop - 4)}px !important;
+        left: ${(rect.left + scrollLeft - 4)}px !important;
+        width: ${(rect.width + 8)}px !important;
+        height: ${(rect.height + 8)}px !important;
+        border: 4px solid #FF4353 !important;
+        border-radius: 6px !important;
+        z-index: 9999997 !important;
+        pointer-events: none !important;
+        box-sizing: border-box !important;
+      `;
+      doc.body.appendChild(highlightBox);
+
+      const toast = doc.createElement('div');
+      toast.id = 'wfa-highlight-toast';
+      toast.style.cssText = `
+        position: fixed !important;
+        top: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background: #1a1a24 !important;
+        color: #ffffff !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6) !important;
+        border: 1px solid #3e3e56 !important;
+        z-index: 9999999 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        white-space: nowrap !important;
+      `;
+      toast.innerHTML = `
+        <span>📍 Elemento localizado — haz clic en cualquier lugar para cerrar.</span>
+      `;
+      doc.body.appendChild(toast);
+
+      setTimeout(() => {
+        doc.addEventListener('click', wfaRemoveHighlight);
+        window.addEventListener('resize', wfaRemoveHighlight);
+        window.addEventListener('scroll', wfaRemoveHighlight);
+      }, 100);
+    }, 400);
+    return true;
+  }
+  return false;
+}
+
+function wfaCreateFloatingToolbar(auditData) {
+  const existing = doc.getElementById('wfa-floating-toolbar');
+  if (existing) existing.remove();
+
+  const toolbar = doc.createElement('div');
+  toolbar.id = 'wfa-floating-toolbar';
+  toolbar.style.cssText = `
+    position: fixed !important;
+    top: 80px !important;
+    right: 20px !important;
+    width: 320px !important;
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    background: #111827 !important;
+    color: #f3f4f6 !important;
+    border: 1px solid #374151 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+    z-index: 9999998 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    padding: 16px !important;
+    user-select: none !important;
+  `;
+
+  const header = doc.createElement('div');
+  header.style.cssText = `
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+    border-bottom: 1px solid #374151 !important;
+    padding-bottom: 8px !important;
+  `;
+  header.innerHTML = `
+    <span style="font-weight: 700; font-size: 13px;">🔎 Errores en esta Página</span>
+    <span id="wfa-toolbar-close" style="cursor: pointer; font-weight: bold; color: #9ca3af; font-size: 14px;">✕</span>
+  `;
+  toolbar.appendChild(header);
+
+  const listContainer = doc.createElement('div');
+  listContainer.style.cssText = `
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  `;
+
+  let hasErrors = false;
+
+  const CATEGORY_ICONS = {
+    seo: "🔎",
+    performance: "⚡",
+    mobile: "📱",
+    accessibility: "♿"
+  };
+
+  Object.entries(auditData.categories).forEach(([catKey, checks]) => {
+    const failedChecks = checks.filter(c => c.status === 'fail' || c.status === 'warn');
+    if (failedChecks.length === 0) return;
+
+    hasErrors = true;
+
+    const catTitle = doc.createElement('div');
+    catTitle.style.cssText = `
+      font-weight: bold !important;
+      font-size: 11px !important;
+      text-transform: uppercase !important;
+      color: #9ca3af !important;
+      margin-top: 6px !important;
+      margin-bottom: 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+    `;
+    catTitle.textContent = `${CATEGORY_ICONS[catKey] || ""} ${catKey.toUpperCase()}`;
+    listContainer.appendChild(catTitle);
+
+    failedChecks.forEach(check => {
+      const checkItem = doc.createElement('div');
+      checkItem.style.cssText = `
+        background: #1f2937 !important;
+        border-radius: 6px !important;
+        padding: 8px !important;
+        border-left: 3px solid ${check.status === 'fail' ? '#ef4444' : '#eab308'} !important;
+      `;
+      checkItem.innerHTML = `
+        <div style="font-weight: 600; font-size: 11.5px; margin-bottom: 4px;">${check.name}</div>
+      `;
+
+      if (check.errors && check.errors.length > 0) {
+        const errList = doc.createElement('div');
+        errList.style.cssText = `
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+          margin-top: 4px !important;
+        `;
+        check.errors.forEach((err, idx) => {
+          const btn = doc.createElement('button');
+          btn.style.cssText = `
+            background: #374151 !important;
+            color: #f9fafb !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 4px 8px !important;
+            font-size: 10px !important;
+            cursor: pointer !important;
+            text-align: left !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            transition: background 0.15s !important;
+          `;
+          btn.innerHTML = `<span>Elemento ${idx + 1}</span> <span style="opacity: 0.6;">📍 Ir</span>`;
+          btn.addEventListener('mouseenter', () => btn.style.background = '#4b5563');
+          btn.addEventListener('mouseleave', () => btn.style.background = '#374151');
+          
+          btn.addEventListener('click', () => {
+            if (!doc.querySelector('[data-wfa-id]')) {
+              try { WFAuditor.run(); } catch(e) {}
+            }
+            let el = err.wfaId ? doc.querySelector(`[data-wfa-id="${err.wfaId}"]`) : null;
+            if (!el && err.selector) {
+              try { el = doc.querySelector(err.selector); } catch(e) {}
+            }
+            wfaHighlightElement(el, err.wfaId, err.selector);
+          });
+
+          errList.appendChild(btn);
+        });
+        checkItem.appendChild(errList);
+      } else {
+        const details = doc.createElement('div');
+        details.style.cssText = `
+          font-size: 10px !important;
+          color: #d1d5db !important;
+          line-height: 1.3 !important;
+        `;
+        details.textContent = check.detail || "Ver detalles del error.";
+        checkItem.appendChild(details);
+      }
+
+      listContainer.appendChild(checkItem);
+    });
+  });
+
+  if (!hasErrors) {
+    const noErrors = doc.createElement('div');
+    noErrors.style.cssText = `
+      text-align: center !important;
+      color: #10b981 !important;
+      font-weight: 600 !important;
+      padding: 12px !important;
+    `;
+    noErrors.textContent = "✓ ¡Sin errores en esta página!";
+    listContainer.appendChild(noErrors);
+  }
+
+  toolbar.appendChild(listContainer);
+  doc.body.appendChild(toolbar);
+
+  doc.getElementById('wfa-toolbar-close').addEventListener('click', () => {
+    toolbar.remove();
+  });
+}
+
 function wfaRemoveHighlight() {
-  const box = document.getElementById('wfa-highlight-box');
+  const box = doc.getElementById('wfa-highlight-box');
   if (box) box.remove();
-  const toast = document.getElementById('wfa-highlight-toast');
+  const toast = doc.getElementById('wfa-highlight-toast');
   if (toast) toast.remove();
-  document.removeEventListener('click', wfaRemoveHighlight);
+  doc.removeEventListener('click', wfaRemoveHighlight);
   window.removeEventListener('resize', wfaRemoveHighlight);
   window.removeEventListener('scroll', wfaRemoveHighlight);
 }
@@ -883,11 +1154,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: false, error: e.message });
     }
   } else if (request.action === 'locateElement') {
-    wfaRemoveHighlight();
-
-    // If the page doesn't have data-wfa-id elements yet (e.g. because it was reloaded or navigated to),
-    // trigger a run to label the elements deterministically.
-    if (!document.querySelector('[data-wfa-id]')) {
+    if (!doc.querySelector('[data-wfa-id]')) {
       try {
         WFAuditor.run();
       } catch (e) {
@@ -895,99 +1162,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }
     
-    // Attempt search by data-wfa-id first, then fallback to selector
-    let el = request.id ? document.querySelector(`[data-wfa-id="${request.id}"]`) : null;
-    if (!el && request.selector) {
-      try {
-        el = document.querySelector(request.selector);
-      } catch (e) {
-        console.error("Invalid selector query fallback:", e);
-      }
+    let el = request.id ? doc.querySelector(`[data-wfa-id="${request.id}"]`) : null;
+    const success = wfaHighlightElement(el, request.id, request.selector);
+    
+    if (request.pageAuditData) {
+      wfaCreateFloatingToolbar(request.pageAuditData);
     }
     
-    if (el) {
-      // Create pulse animation in head if it doesn't exist yet
-      if (!document.getElementById('wfa-styles')) {
-        const style = document.createElement('style');
-        style.id = 'wfa-styles';
-        style.textContent = `
-          @keyframes wfa-pulse-glow {
-            0% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
-            50% { border-color: #4353FF; box-shadow: 0 0 25px rgba(67, 83, 255, 0.9), 0 0 0 9999px rgba(0, 0, 0, 0.45); }
-            100% { border-color: #FF4353; box-shadow: 0 0 10px rgba(255, 67, 83, 0.8), 0 0 0 9999px rgba(0, 0, 0, 0.4); }
-          }
-          .wfa-box-active {
-            animation: wfa-pulse-glow 1.5s ease-in-out infinite !important;
-          }
-        `;
-        document.head.appendChild(style);
-      }
-
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      // Wait for scrolling to finish, then position our highlight box accurately
-      setTimeout(() => {
-        const rect = el.getBoundingClientRect();
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-        // Draw highlight container
-        const highlightBox = document.createElement('div');
-        highlightBox.id = 'wfa-highlight-box';
-        highlightBox.className = 'wfa-box-active';
-        highlightBox.style.cssText = `
-          position: absolute !important;
-          top: ${(rect.top + scrollTop - 4)}px !important;
-          left: ${(rect.left + scrollLeft - 4)}px !important;
-          width: ${(rect.width + 8)}px !important;
-          height: ${(rect.height + 8)}px !important;
-          border: 4px solid #FF4353 !important;
-          border-radius: 6px !important;
-          z-index: 9999997 !important;
-          pointer-events: none !important;
-          box-sizing: border-box !important;
-        `;
-        document.body.appendChild(highlightBox);
-
-        // Toast message banner (dismissible via any click)
-        const toast = document.createElement('div');
-        toast.id = 'wfa-highlight-toast';
-        toast.style.cssText = `
-          position: fixed !important;
-          top: 20px !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          background: #1a1a24 !important;
-          color: #ffffff !important;
-          padding: 8px 16px !important;
-          border-radius: 8px !important;
-          font-size: 12px !important;
-          font-weight: 500 !important;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.6) !important;
-          border: 1px solid #3e3e56 !important;
-          z-index: 9999999 !important;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-          cursor: pointer !important;
-          user-select: none !important;
-          white-space: nowrap !important;
-        `;
-        toast.innerHTML = `
-          <span>📍 Elemento localizado — usa <strong>✖ Ocultar</strong> en el panel o haz clic aquí para cerrar.</span>
-        `;
-        document.body.appendChild(toast);
-
-        // Listeners to dismiss highlight
-        setTimeout(() => {
-          document.addEventListener('click', wfaRemoveHighlight);
-          window.addEventListener('resize', wfaRemoveHighlight);
-          window.addEventListener('scroll', wfaRemoveHighlight);
-        }, 100);
-      }, 400);
-
-      sendResponse({ success: true });
-    } else {
-      sendResponse({ success: false, error: 'Elemento no encontrado en la página. Puede haber cambiado la estructura.' });
-    }
+    sendResponse({ success: success });
   } else if (request.action === 'removeHighlight') {
     wfaRemoveHighlight();
     sendResponse({ success: true });

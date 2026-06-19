@@ -120,9 +120,11 @@ Está en `.gitignore` — **no se sube al repo**.
 ```
 webflow-auditor/
 ├── manifest.json         # Configuración de la extensión
-├── content.js            # Lógica de auditoría (corre en la página)
+├── content.js            # Lógica de auditoría y barra flotante (corre en la página)
 ├── popup.html            # UI del popup
 ├── popup.js              # Lógica del popup
+├── sitemap-auditor.html  # Dashboard a pantalla completa para sitemaps
+├── sitemap-auditor.js    # Lógica de auditoría silenciosa (Shadow Mode)
 ├── styles.css            # Estilos
 ├── icons/                # Iconos 16, 48, 128px
 ├── docs/
@@ -141,11 +143,12 @@ webflow-auditor/
 
 Todos los cambios y versiones de este proyecto están detallados en el archivo [CHANGELOG.md](file:///Users/metalsyntax/Downloads/Webflow-Auditor/CHANGELOG.md).
 
-### Resumen de la Versión Reciente: v1.1.0 (2026-06-18)
-- **Interfaz de Usuario Renovada**: Rediseño visual del popup, puntuaciones con indicadores circulares, botones tipo píldora y remoción de emojis.
-- **Iconos Actualizados**: Nuevo diseño de logo con fondo transparente.
-- **Mejoras Técnicas**: Prevención de errores de inyección repetida en `content.js` y corrección de un bug en el check de accesibilidad de `accesskeys`.
-- **Anotaciones y Localización**: IDs deterministas y auto-anotación mejorada.
+### Resumen de la Versión Reciente: v1.2.0 (2026-06-19)
+- **Auditoría de Sitemap XML en segundo plano (Shadow Mode)**: Reemplazado el viejo sistema de abrir/cerrar pestañas físicas por auditorías silenciosas en memoria (`fetch` + `DOMParser`).
+- **Dashboard dedicado**: Nueva página de dashboard a pantalla completa (`sitemap-auditor.html`) con tabla de progresos en tiempo real.
+- **Barra flotante interactiva**: Panel flotante inyectado en el sitio web para guiarte en la corrección de errores directamente sin volver a la extensión.
+- **Exportación a CSV**: Agregado soporte de reportes estructurados en formato CSV (con UTF-8 BOM para Excel).
+- **Correcciones Técnicas**: Solucionado bug en SSL/HTTPS en shadow-mode y soporte para reutilizar pestañas en localizaciones secuenciales.
 
 ---
 

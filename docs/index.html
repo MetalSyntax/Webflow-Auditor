@@ -431,7 +431,7 @@
     <span class="logo-name">Webflow Auditor</span>
   </div>
   <div>
-    <span class="version-badge">v1.1.0</span>
+    <span class="version-badge">v1.2.0</span>
   </div>
   <p>Auditoría completa de SEO, Performance, Mobile y Accesibilidad con soluciones específicas para Webflow.</p>
 </header>
@@ -474,16 +474,47 @@
         </ol>
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <a href="downloads/webflow-auditor-latest.crx" class="btn btn-primary" download>
-            ⬇ Descargar .crx (v1.1.0)
+            ⬇ Descargar .crx (v1.2.0)
           </a>
           <a href="downloads/webflow-auditor-latest.zip" class="btn btn-secondary" download>
-            ⬇ Descargar .zip (v1.1.0)
+            ⬇ Descargar .zip (v1.2.0)
           </a>
         </div>
         <div class="warning-box">
           <strong>⚠ macOS + Chrome 73+</strong>
           Chrome bloquea instalación de CRX externos en macOS. Usa el método "Load Unpacked" en su lugar.
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOVEDADES V1.2.0 -->
+  <section>
+    <h2>✨ Novedades de la Versión 1.2.0</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 24px;">
+      <div class="feature-group">
+        <h3>☁️ Auditoría Sitemap Shadow Mode</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+          Audita todo tu sitio web en silencio usando peticiones en segundo plano (`fetch` + `DOMParser`). Se acabaron las 60 pestañas que se abrían y cerraban en tu navegador.
+        </p>
+      </div>
+      <div class="feature-group">
+        <h3>📊 Reportes en CSV (Excel)</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+          Exporta reportes estructurados con formato CSV listo para importar en Microsoft Excel, Google Sheets u otras herramientas de SEO con codificación UTF-8 BOM.
+        </p>
+      </div>
+      <div class="feature-group">
+        <h3>🛠️ Barra Flotante de Corrección</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+          Cuando localizas un elemento problemático, se inyecta un panel flotante glassmorphic interactivo en tu página para que corrijas todos los errores secuencialmente sin volver a la extensión.
+        </p>
+      </div>
+      <div class="feature-group">
+        <h3>🔄 Reutilización de Pestaña Inteligente</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+          Mantiene limpia tu barra de pestañas reutilizando la misma ventana al navegar y resaltar errores en lugar de amontonar ventanas.
+        </p>
       </div>
     </div>
   </section>
@@ -604,8 +635,8 @@
         <div style="flex-grow: 1;">
           <strong>Sube el release a GitHub</strong>
           <pre>git add -A
-git commit -m "release: v1.1.0"
-git tag v1.1.0
+git commit -m "release: v1.2.0"
+git tag v1.2.0
 git push && git push --tags</pre>
           GitHub Pages publica automáticamente el nuevo <code>.crx</code> y esta página.
         </div>
@@ -625,7 +656,7 @@ git push && git push --tags</pre>
 
 <footer>
   <p>
-    Webflow SEO &amp; A11y Auditor &nbsp;·&nbsp; v1.1.0 &nbsp;·&nbsp;
+    Webflow SEO &amp; A11y Auditor &nbsp;·&nbsp; v1.2.0 &nbsp;·&nbsp;
     <a href="https://github.com/TU-USUARIO/webflow-auditor">GitHub</a> &nbsp;·&nbsp;
     <a href="update.xml">update.xml</a>
   </p>

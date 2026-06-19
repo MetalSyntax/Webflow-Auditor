@@ -2,6 +2,21 @@
 
 Todos los cambios notables en este proyecto serán documentados en este archivo. El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-19
+
+### Añadido
+- **Auditoría de Sitemap en Segundo Plano (Shadow Mode)**: Descarga silenciosa de sitemaps y auditoría en memoria (`fetch` + `DOMParser`) sin abrir múltiples pestañas físicas.
+- **Dashboard de Sitemap XML**: Nueva pantalla completa interactiva (`sitemap-auditor.html`) con tabla de progreso y reporte en tiempo real.
+- **Barra de herramientas flotante (`wfa-floating-toolbar`)**: Panel inyectado en el sitio web auditado para localizar y navegar errores secuencialmente en la misma página sin cambiar de pestaña.
+- **Exportación en CSV**: Soporte de descarga de reportes en formato CSV estructurado con compatibilidad Excel (UTF-8 BOM).
+
+### Modificado
+- Reutilización inteligente de la pestaña de localización de elementos para reducir el desorden de ventanas.
+- Ajuste del selector y origen de sitemaps en `popup.js` para evitar solapamiento de URLs guardadas en caché sobre sitios activos.
+
+### Solucionado
+- Falsos negativos del test SSL/HTTPS y la estructura de URLs en la auditoría en segundo plano mediante la resolución dinámica de la URL auditada.
+
 ## [1.1.0] - 2026-06-18
 
 ### Añadido

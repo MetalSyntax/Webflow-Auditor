@@ -72,7 +72,7 @@ ZIP_VER="$DOWNLOADS/webflow-auditor-v$NEW_VERSION.zip"
 ZIP_LATEST="$DOWNLOADS/webflow-auditor-latest.zip"
 
 cd "$ROOT"
-zip -r "$ZIP_VER" manifest.json popup.html popup.js content.js styles.css icons/ \
+zip -r "$ZIP_VER" manifest.json popup.html popup.js content.js styles.css sitemap-auditor.html sitemap-auditor.js icons/ \
   --exclude "*.DS_Store" -q
 
 cp "$ZIP_VER" "$ZIP_LATEST"
@@ -100,7 +100,7 @@ if [[ -n "$CHROME_BIN" ]]; then
   # Chrome crea el .crx en el directorio PADRE de la extensión,
   # así que usamos una copia temporal.
   TMP_EXT=$(mktemp -d)
-  cp -r "$ROOT"/{manifest.json,popup.html,popup.js,content.js,styles.css,icons} "$TMP_EXT/"
+  cp -r "$ROOT"/{manifest.json,popup.html,popup.js,content.js,styles.css,sitemap-auditor.html,sitemap-auditor.js,icons} "$TMP_EXT/"
 
   PEM_FLAG=""
   [[ -f "$PEM_FILE" ]] && PEM_FLAG="--pack-extension-key=$PEM_FILE"

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditor de Sitemap - Webflow Auditor</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Tab overrides for full page view */
+    body.full-tab {
+      width: 100% !important;
+      max-width: 1100px;
+      margin: 0 auto;
+      min-height: 100vh;
+      max-height: none;
+      padding: 40px 24px;
+      background: #f8fafc;
+    }
+
+    .container {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      padding: 32px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 20px;
+    }
+
+    .dashboard-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dashboard-logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .dashboard-title-group h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .dashboard-title-group p {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .sitemap-setup {
+      background: #f1f5f9;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .sitemap-input-grid {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .sitemap-input-grid input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .sitemap-input-grid input[type="text"]:focus {
+      border-color: #4353FF;
+    }
+
+    .sitemap-input-grid button {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .sitemap-grid-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    /* Pages table listing */
+    .table-container {
+      margin-top: 32px;
+      margin-bottom: 32px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .pages-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .pages-table th, .pages-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .pages-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .pages-table tbody tr {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .pages-table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .pages-table tbody tr.selected {
+      background: #eff6ff;
+    }
+
+    .score-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-align: center;
+      min-width: 42px;
+    }
+
+    .score-good { background: #dcfce7; color: #15803d; }
+    .score-warn { background: #fef9c3; color: #a16207; }
+    .score-bad  { background: #fee2e2; color: #b91c1c; }
+
+    .inspector-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 16px;
+      padding-top: 24px;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .back-to-top {
+      display: inline-block;
+      margin-top: 16px;
+      color: #4353FF;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .back-to-top:hover {
+      text-decoration: underline;
+    }
+
+    .sitemap-progress {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body class="full-tab">
+  <div class="container">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-logo">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="logoGradDashboard" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4353FF" />
+              <stop offset="100%" stop-color="#00D2FF" />
+            </linearGradient>
+            <filter id="glowDashboard" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#logoGradDashboard)" />
+          <path d="M10 16.5l4 4 8-8" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowDashboard)"/>
+          <circle cx="16" cy="16" r="11" stroke="white" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6"/>
+        </svg>
+        <div class="dashboard-title-group">
+          <h1>Auditoría de Sitemap XML (Shadow Mode)</h1>
+          <p>Audita todo tu sitio web de forma discreta y eficiente en segundo plano.</p>
+        </div>
+      </div>
+      <div class="header-actions" style="display: flex; gap: 8px;">
+        <button id="exportSitemapBtn" class="export-btn hidden">Exportar TXT</button>
+        <button id="exportSitemapCsvBtn" class="export-btn hidden" style="background: #10b981; color: white;">Exportar CSV</button>
+      </div>
+    </div>
+
+    <!-- Setup Form -->
+    <div class="sitemap-setup">
+      <div class="sitemap-input-grid">
+        <input type="text" id="sitemapUrl" placeholder="https://ejemplo.com/sitemap.xml" />
+        <button id="runSitemapAudit" class="audit-btn">Iniciar Auditoría</button>
+        <button id="cancelSitemapBtn" class="export-btn red-btn hidden">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div id="sitemapProgress" class="sitemap-progress hidden">
+      <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+      </div>
+      <div id="progressStatus" class="progress-status" style="margin-top: 10px; font-weight: 600;">Preparando...</div>
+    </div>
+
+    <!-- Stats summary -->
+    <div id="sitemapStats" class="sitemap-results hidden">
+      <div class="sitemap-grid-stats">
+        <div class="stat-box">
+          <span class="stat-num" id="statTotalChecked" style="font-size: 28px; font-weight: 800;">0</span>
+          <span class="stat-label" style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Páginas Auditadas</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="statAvgScore" style="font-size: 28px; font-weight: 800;">—</span>
+          <span class="stat-label" style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Puntuación Promedio</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num color-fail" id="statTotalErrors" style="font-size: 28px; font-weight: 800; color: #ef4444;">0</span>
+          <span class="stat-label" style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Errores Encontrados</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pages Table -->
+    <div id="tableWrapper" class="hidden">
+      <h3>Detalles de las páginas auditadas</h3>
+      <p style="color: #64748b; font-size: 12px; margin-bottom: 12px;">Haz clic en cualquier fila para inspeccionar los detalles específicos de esa página.</p>
+      <div class="table-container">
+        <table class="pages-table">
+          <thead>
+            <tr>
+              <th>Ruta de la Página</th>
+              <th>SEO</th>
+              <th>Perf.</th>
+              <th>Mobile</th>
+              <th>A11y</th>
+              <th>Errores</th>
+            </tr>
+          </thead>
+          <tbody id="pagesTableBody">
+            <!-- Populated via js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Selected Page Details (Inspector) -->
+    <div id="inspectorSection" class="hidden">
+      <div class="inspector-title" id="inspectorTitle">Inspección: /</div>
+      
+      <!-- Score summary cards for single page -->
+      <div id="sitemapPageSummary" class="summary">
+        <div class="score-card" id="sitemapScoreSEO">
+          <div class="score-circle">
+            <div class="score-num" id="sitemapNumSEO">—</div>
+          </div>
+          <div class="score-label">SEO</div>
+        </div>
+        <div class="score-card" id="sitemapScorePerf">
+          <div class="score-circle">
+            <div class="score-num" id="sitemapNumPerf">—</div>
+          </div>
+          <div class="score-label">Performance</div>
+        </div>
+        <div class="score-card" id="sitemapScoreMobile">
+          <div class="score-circle">
+            <div class="score-num" id="sitemapNumMobile">—</div>
+          </div>
+          <div class="score-label">Mobile</div>
+        </div>
+        <div class="score-card" id="sitemapScoreA11y">
+          <div class="score-circle">
+            <div class="score-num" id="sitemapNumA11y">—</div>
+          </div>
+          <div class="score-label">A11y</div>
+        </div>
+      </div>
+
+      <!-- Specific detailed checks list -->
+      <div id="sitemapPageDetails" class="results"></div>
+      
+      <a class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑ Volver arriba</a>
+    </div>
+
+  </div>
+
+  <!-- Content script runs globally within this window contexts and registers WFAuditor -->
+  <script src="content.js"></script>
+  <!-- Main logic controller for shadow sitemap audit -->
+  <script src="sitemap-auditor.js"></script>
+</body>
+</html>

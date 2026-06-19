@@ -57,12 +57,19 @@ document.addEventListener("DOMContentLoaded", () => {
     activeTabId = activeTab.id;
     const url = activeTab.url || "";
     const urlEl = document.getElementById("pageUrl");
+    let isWebPage = false;
+
     try {
       const parsedUrl = new URL(url);
       urlEl.textContent = parsedUrl.hostname + parsedUrl.pathname;
       
-      // Pre-fill sitemap URL with the current origin
-      document.getElementById("sitemapUrl").value = parsedUrl.origin + "/sitemap.xml";
+      if (parsedUrl.protocol.startsWith("http")) {
+        // Pre-fill sitemap URL with the current origin
+        document.getElementById("sitemapUrl").value = parsedUrl.origin + "/sitemap.xml";
+        isWebPage = true;
+      } else {
+        document.getElementById("sitemapUrl").value = "";
+      }
     } catch {
       urlEl.textContent = url.substring(0, 50);
       document.getElementById("sitemapUrl").value = "";
@@ -76,20 +83,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("exportBtn").classList.remove("hidden");
       }
     });
-  });
 
-  // Try loading persistent sitemap audit results
-  chrome.storage.local.get(["sitemap_audit_data"], (res) => {
-    if (res && res.sitemap_audit_data) {
-      const data = res.sitemap_audit_data;
-      if (data.sitemapUrl) {
-        document.getElementById("sitemapUrl").value = data.sitemapUrl;
-      }
-      sitemapAudits = data.sitemapAudits || {};
-      if (Object.keys(sitemapAudits).length > 0) {
-        finalizeSitemapReport();
-        document.getElementById("exportSitemapBtn").classList.remove("hidden");
-      }
+    // Try loading persistent sitemap audit URL only if not on a webpage
+    if (!isWebPage) {
+      chrome.storage.local.get(["sitemap_audit_data"], (res) => {
+        if (res && res.sitemap_audit_data) {
+          const data = res.sitemap_audit_data;
+          if (data.sitemapUrl) {
+            document.getElementById("sitemapUrl").value = data.sitemapUrl;
+          }
+        }
+      });
     }
   });
 
@@ -97,11 +101,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("runAudit").addEventListener("click", runSingleAudit);
   document.getElementById("exportBtn").addEventListener("click", exportSingleReport);
 
-  // Sitemap buttons
+  // Sitemap buttons (delegates to sitemap-auditor.html)
   document.getElementById("runSitemapAudit").addEventListener("click", startSitemapAudit);
-  document.getElementById("cancelSitemapBtn").addEventListener("click", cancelSitemapAudit);
-  document.getElementById("exportSitemapBtn").addEventListener("click", exportSitemapReport);
-  document.getElementById("sitemapPageSelector").addEventListener("change", handleSitemapPageSelect);
 });
 
 // ─── Run Single Audit ─────────────────────────────────────────
@@ -404,7 +405,7 @@ function handleLocateElement(e) {
 }
 
 // ─── Sitemap Audit Flow ──────────────────────────────────────
-async function startSitemapAudit() {
+function startSitemapAudit() {
   const urlInput = document.getElementById("sitemapUrl");
   const sitemapUrl = urlInput.value.trim();
   
@@ -413,219 +414,10 @@ async function startSitemapAudit() {
     return;
   }
 
-  isSitemapAuditRunning = true;
-  sitemapAudits = {};
-  
-  // UI States
-  document.getElementById("runSitemapAudit").disabled = true;
-  document.getElementById("cancelSitemapBtn").classList.remove("hidden");
-  document.getElementById("exportSitemapBtn").classList.add("hidden");
-  document.getElementById("sitemapProgress").classList.remove("hidden");
-  document.getElementById("sitemapResults").classList.add("hidden");
-  updateSitemapProgress(0, "Descargando sitemap...");
-
-  try {
-    const response = await fetch(sitemapUrl);
-    if (!response.ok) throw new Error("No se pudo descargar el sitemap. Status: " + response.status);
-    const xmlText = await response.text();
-
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    
-    // Find all <loc> elements
-    const locs = Array.from(xmlDoc.getElementsByTagName("loc")).map((l) => l.textContent.trim());
-    if (locs.length === 0) {
-      throw new Error("No se encontraron URLs de páginas (<loc>) en el sitemap XML.");
-    }
-
-    // Filter to only include URLs on the same domain and likely HTML (no pdf, jpg, etc.)
-    const cleanUrl = new URL(sitemapUrl);
-    sitemapUrlsToAudit = locs.filter((url) => {
-      try {
-        const u = new URL(url);
-        if (u.hostname !== cleanUrl.hostname) return false;
-        
-        const pathname = u.pathname.toLowerCase();
-        if (pathname.endsWith(".png") || pathname.endsWith(".jpg") || pathname.endsWith(".pdf") || pathname.endsWith(".gif") || pathname.endsWith(".css") || pathname.endsWith(".js") || pathname.endsWith(".xml")) {
-          return false;
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    });
-
-    if (sitemapUrlsToAudit.length === 0) {
-      throw new Error("No se encontraron páginas HTML válidas pertenecientes al mismo dominio.");
-    }
-
-    currentSitemapIndex = 0;
-    updateSitemapProgress(0, `Encontradas ${sitemapUrlsToAudit.length} páginas. Auditando...`);
-    auditNextSitemapUrl();
-
-  } catch (err) {
-    isSitemapAuditRunning = false;
-    document.getElementById("runSitemapAudit").disabled = false;
-    document.getElementById("cancelSitemapBtn").classList.add("hidden");
-    document.getElementById("sitemapProgress").classList.add("hidden");
-    alert("Error al procesar sitemap: " + err.message);
-  }
-}
-
-function updateSitemapProgress(percent, text) {
-  document.getElementById("progressBar").style.width = percent + "%";
-  document.getElementById("progressStatus").textContent = text;
-}
-
-function cancelSitemapAudit() {
-  isSitemapAuditRunning = false;
-  document.getElementById("runSitemapAudit").disabled = false;
-  document.getElementById("cancelSitemapBtn").classList.add("hidden");
-  updateSitemapProgress(0, "Auditoría cancelada.");
-  
-  if (Object.keys(sitemapAudits).length > 0) {
-    finalizeSitemapReport();
-  } else {
-    document.getElementById("sitemapProgress").classList.add("hidden");
-  }
-}
-
-function auditNextSitemapUrl() {
-  if (!isSitemapAuditRunning) return;
-
-  if (currentSitemapIndex >= sitemapUrlsToAudit.length) {
-    // Finished!
-    isSitemapAuditRunning = false;
-    document.getElementById("runSitemapAudit").disabled = false;
-    document.getElementById("cancelSitemapBtn").classList.add("hidden");
-    document.getElementById("exportSitemapBtn").classList.remove("hidden");
-    updateSitemapProgress(100, "Auditoría completada exitosamente.");
-    finalizeSitemapReport();
-    return;
-  }
-
-  const url = sitemapUrlsToAudit[currentSitemapIndex];
-  const percent = Math.round((currentSitemapIndex / sitemapUrlsToAudit.length) * 100);
-  updateSitemapProgress(percent, `[${currentSitemapIndex + 1}/${sitemapUrlsToAudit.length}] Auditando: ${new URL(url).pathname}`);
-
-  // Create background tab to run audit
-  chrome.tabs.create({ url: url, active: false }, (tab) => {
-    const tabId = tab.id;
-    
-    // Safety timeout to close tab if it hangs (15s)
-    let timeoutId = setTimeout(() => {
-      chrome.tabs.remove(tabId);
-      console.warn("Audit timeout on URL: " + url);
-      currentSitemapIndex++;
-      auditNextSitemapUrl();
-    }, 15000);
-
-    const listener = (updatedTabId, changeInfo) => {
-      if (updatedTabId === tabId && changeInfo.status === "complete") {
-        chrome.tabs.onUpdated.removeListener(listener);
-        
-        // Inject script just in case content.js didn't auto-execute
-        chrome.scripting.executeScript({ target: { tabId: tabId }, files: ["content.js"] }, () => {
-          if (chrome.runtime.lastError) {
-             // Script injection failed or tab closed
-             clearTimeout(timeoutId);
-             chrome.tabs.remove(tabId);
-             currentSitemapIndex++;
-             auditNextSitemapUrl();
-             return;
-          }
-
-          // Trigger runAudit on tab
-          chrome.tabs.sendMessage(tabId, { action: "runAudit" }, (response) => {
-            clearTimeout(timeoutId);
-            chrome.tabs.remove(tabId);
-
-            if (response && response.success) {
-              sitemapAudits[url] = response.data;
-            } else {
-              console.warn("Failed response from tab for URL: " + url, response?.error);
-            }
-
-            currentSitemapIndex++;
-            auditNextSitemapUrl();
-          });
-        });
-      }
-    };
-
-    chrome.tabs.onUpdated.addListener(listener);
+  // Open the dedicated sitemap-auditor.html page in a new tab
+  chrome.tabs.create({
+    url: chrome.runtime.getURL("sitemap-auditor.html?url=" + encodeURIComponent(sitemapUrl))
   });
-}
-
-function finalizeSitemapReport() {
-  document.getElementById("sitemapResults").classList.remove("hidden");
-  
-  const pages = Object.keys(sitemapAudits);
-  const total = pages.length;
-  document.getElementById("statTotalChecked").textContent = total;
-
-  let totalScoreSum = 0;
-  let totalErrors = 0;
-  
-  // Clear and populate selector dropdown
-  const selector = document.getElementById("sitemapPageSelector");
-  selector.innerHTML = '<option value="">-- Selecciona una página --</option>';
-
-  pages.forEach((url) => {
-    const audit = sitemapAudits[url];
-    let pageErrors = 0;
-    let categoryScores = [];
-
-    Object.values(audit.categories).forEach((checks) => {
-      const catTotal = checks.length;
-      const catPassed = checks.filter((c) => c.status === "pass" || c.status === "info").length;
-      const catScore = catTotal > 0 ? (catPassed / catTotal) * 100 : 100;
-      categoryScores.push(catScore);
-
-      const catErrors = checks.filter((c) => c.status === "fail").length;
-      pageErrors += catErrors;
-    });
-
-    const avgPageScore = categoryScores.reduce((a, b) => a + b, 0) / categoryScores.length;
-    totalScoreSum += avgPageScore;
-    totalErrors += pageErrors;
-
-    const opt = document.createElement("option");
-    opt.value = url;
-    opt.textContent = `(${Math.round(avgPageScore)}%) ${new URL(url).pathname || "/"}`;
-    selector.appendChild(opt);
-  });
-
-  const finalAvg = total > 0 ? Math.round(totalScoreSum / total) : 0;
-  document.getElementById("statAvgScore").textContent = finalAvg + "%";
-  document.getElementById("statTotalErrors").textContent = totalErrors;
-
-  // Add coloring classes
-  const avgEl = document.getElementById("statAvgScore");
-  avgEl.className = "stat-num " + (finalAvg >= 80 ? "color-pass" : finalAvg >= 50 ? "color-warn" : "color-fail");
-
-  // Persist sitemap audits
-  chrome.storage.local.set({
-    sitemap_audit_data: {
-      sitemapUrl: document.getElementById("sitemapUrl").value,
-      sitemapAudits: sitemapAudits
-    }
-  });
-}
-
-function handleSitemapPageSelect() {
-  const url = document.getElementById("sitemapPageSelector").value;
-  const summaryEl = document.getElementById("sitemapPageSummary");
-  const detailsEl = document.getElementById("sitemapPageDetails");
-
-  if (!url || !sitemapAudits[url]) {
-    summaryEl.classList.add("hidden");
-    detailsEl.classList.add("hidden");
-    return;
-  }
-
-  const auditData = sitemapAudits[url];
-  renderResults(auditData, "sitemapPageSummary", "sitemapPageDetails");
 }
 
 // ─── Single Page Export Report ─────────────────────────────────
